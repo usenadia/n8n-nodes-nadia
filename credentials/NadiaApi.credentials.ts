@@ -10,7 +10,7 @@ export class NadiaApi implements ICredentialType {
 
 	displayName = 'Nadia API';
 
-	documentationUrl = 'https://usenadia.com/docs/api';
+	documentationUrl = 'https://usenadia.com/docs/public-api/introduction';
 
 	properties: INodeProperties[] = [
 		{
