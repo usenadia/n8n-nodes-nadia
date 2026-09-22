@@ -88,8 +88,13 @@ pnpm install --ignore-workspace
 pnpm build
 pnpm lint
 pnpm test
-pnpm scan     # n8n's official community-package scanner, before publishing
 ```
+
+Inside the Nadia monorepo, two more checks run from the repository root:
+`node scripts/n8n-scan.mjs` (n8n's official community-package scanner, run on
+the packed tarball before it is published) and
+`node scripts/check-n8n-contract.mjs` (every endpoint this node calls still
+exists in the API).
 
 `lint` sets `ESLINT_USE_FLAT_CONFIG=false`: this package keeps an `.eslintrc.js`
 while the repository around it uses flat config, and ESLint 8 otherwise walks up

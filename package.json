@@ -33,8 +33,7 @@
     "lintfix": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts nodes credentials index.ts --fix",
     "test": "jest",
     "test:watch": "jest --watch",
-    "prepublishOnly": "pnpm build",
-    "scan": "node ../../../scripts/n8n-scan.mjs"
+    "prepublishOnly": "pnpm build"
   },
   "files": [
     "dist"
