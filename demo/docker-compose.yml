@@ -1,0 +1,18 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: nadia-n8n-demo
+    ports:
+      - '5678:5678'
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+      # Needed for the Trigger node: Nadia has to be able to reach the webhook
+      # URL n8n hands out, so point this at a tunnel when testing it.
+      # - WEBHOOK_URL=https://your-tunnel.example.com/
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

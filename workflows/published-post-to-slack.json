@@ -1,0 +1,165 @@
+{
+  "name": "Post a Slack message whenever Nadia publishes",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Tell your team in Slack every time a post goes live\n\nNadia publishes on a schedule, which means posts go out while nobody is watching. This workflow turns each publication into one Slack message with the channel, the text and a link, so the team sees what the account said without opening the app.\n\nIt uses the **Nadia Trigger**, which registers its own webhook when you activate the workflow and removes it when you deactivate it. There is nothing to configure inside Nadia.\n\n### How it works\n\n1. **Nadia Trigger** receives a signed `post.published` delivery.\n2. **Set** flattens the envelope into the few fields the message needs.\n3. **Slack** posts to the channel of your choice.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Activate the workflow — the trigger registers the webhook at that moment. n8n must be reachable from the internet over HTTPS.\n3. Add your **Slack** credential and pick a channel.\n\n### Customize\n\nAdd channels to the trigger to watch only some accounts, or tick `automation.triggered` as well to also hear about comment automations that fired.",
+        "width": 520,
+        "height": 560
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## The webhook registers itself\nActivate the workflow and Nadia starts delivering. Deactivate it and the webhook is removed.",
+        "width": 420,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note1",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## One readable message\nThe envelope is flattened before it reaches Slack.",
+        "width": 420,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note2",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        460,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "events": [
+          "post.published"
+        ],
+        "channelIds": [],
+        "verifySignature": true
+      },
+      "id": "nadia-trigger",
+      "name": "Nadia Trigger",
+      "type": "n8n-nodes-nadia.nadiaTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "nadiaApi": {
+          "id": "REPLACE",
+          "name": "Nadia account"
+        }
+      },
+      "webhookId": "REPLACE"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "channel",
+              "value": "={{ $json.data.integration.name }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "text",
+              "value": "={{ $json.data.content }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "releaseUrl",
+              "value": "={{ $json.data.releaseURL }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "shape-the-message",
+      "name": "Shape the message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "text": "=*{{ $json.channel }}* just published\n\n{{ $json.text }}\n\n{{ $json.releaseUrl }}",
+        "otherOptions": {}
+      },
+      "id": "slack",
+      "name": "Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Nadia Trigger": {
+      "main": [
+        [
+          {
+            "node": "Shape the message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape the message": {
+      "main": [
+        [
+          {
+            "node": "Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

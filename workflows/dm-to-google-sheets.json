@@ -1,0 +1,185 @@
+{
+  "name": "Log every Instagram DM Nadia receives to Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Keep every incoming DM in a spreadsheet\n\nDirect messages are where the answers to a post actually arrive, and they are the first thing lost when an account grows. This workflow appends one row per inbound DM to a Google Sheet: who wrote, what they said, on which channel, and when.\n\nIt uses the **Nadia Trigger**, which registers its own webhook on activation, so nothing has to be set up inside Nadia.\n\n### How it works\n\n1. **Nadia Trigger** receives a signed `dm.received` delivery.\n2. **Set** flattens the envelope into one flat row.\n3. **Google Sheets** appends it.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Add your **Google Sheets** credential and pick the spreadsheet and tab.\n3. Give the sheet the columns `date`, `channel`, `username`, `message`, `storyId`.\n4. Activate the workflow — the webhook is registered at that moment.\n\n### Customize\n\nTick `comment.received` on the trigger to log public comments in the same sheet, and add an IF node before the append to separate the two.",
+        "width": 520,
+        "height": 560
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## One delivery per message\nSigned with the secret the trigger stored when it registered itself.",
+        "width": 420,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note1",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## One row per message\nFlatten first, append second.",
+        "width": 420,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note2",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        460,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "events": [
+          "dm.received"
+        ],
+        "channelIds": [],
+        "verifySignature": true
+      },
+      "id": "nadia-trigger",
+      "name": "Nadia Trigger",
+      "type": "n8n-nodes-nadia.nadiaTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "nadiaApi": {
+          "id": "REPLACE",
+          "name": "Nadia account"
+        }
+      },
+      "webhookId": "REPLACE"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "date",
+              "value": "={{ $json.occurredAt }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "channel",
+              "value": "={{ $json.data.integrationName }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "username",
+              "value": "={{ $json.data.from.username }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "message",
+              "value": "={{ $json.data.message.text }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "storyId",
+              "value": "={{ $json.data.message.storyId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "flatten-the-dm",
+      "name": "Flatten the DM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Nadia Trigger": {
+      "main": [
+        [
+          {
+            "node": "Flatten the DM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten the DM": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

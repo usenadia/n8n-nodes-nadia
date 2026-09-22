@@ -1,0 +1,228 @@
+{
+  "name": "Turn an RSS feed into scheduled social posts with Nadia",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Turn an RSS feed into scheduled social posts\n\nEvery hour this workflow reads an RSS feed, keeps only the items published since the last run, asks an AI model for a caption written for social, and schedules the post on a Nadia channel in the next free slot of your posting schedule.\n\nNothing is published immediately: each item lands in the calendar at a slot Nadia picks, so a burst of ten articles does not become ten posts in ten minutes.\n\n### How it works\n\n1. **Schedule Trigger** fires every hour.\n2. **RSS Read** fetches the feed.\n3. **Filter** drops anything older than the interval, so an item is never posted twice.\n4. **Basic LLM Chain** rewrites the title and summary as a caption.\n5. **Nadia** creates the post with *Use Next Free Slot* on, which asks the API for the next open slot of that channel.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Open the **Nadia** node and pick your channel from the dropdown, then fill the channel settings it loads.\n3. Set the feed URL in **RSS Read**.\n4. Add credentials for the model you want in **Basic LLM Chain**.\n\n### Customize\n\nSwap the Filter for a keyword check to post only some items, or set the node to *Draft* to review everything in the calendar before it goes out.",
+        "width": 520,
+        "height": 620
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Read the feed\nHourly, keep only what is new since the last run.",
+        "width": 420,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note1",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Write the caption\nThe article title and summary become a caption written for social.",
+        "width": 300,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note2",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        420,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Schedule it\nNadia picks the next free slot of that channel.",
+        "width": 300,
+        "height": 240,
+        "color": 7
+      },
+      "id": "sticky-note3",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        760,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "every-hour",
+      "name": "Every hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://example.com/feed.xml",
+        "options": {}
+      },
+      "id": "rss-read",
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isoDate }}",
+              "rightValue": "={{ $now.minus(1, 'hour').toISO() }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "only-new-items",
+      "name": "Only new items",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write a social media caption for this article. Two or three sentences, no hashtags, no emoji, end with the link.\n\nTitle: {{ $json.title }}\nSummary: {{ $json.contentSnippet }}\nLink: {{ $json.link }}",
+        "messages": {}
+      },
+      "id": "write-the-caption",
+      "name": "Write the caption",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "createPost",
+        "channelId": "",
+        "type": "schedule",
+        "useFreeSlot": true,
+        "content": "={{ $json.text }}",
+        "media": "",
+        "settings": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "additionalFields": {
+          "shortLink": true
+        }
+      },
+      "id": "nadia",
+      "name": "Nadia",
+      "type": "n8n-nodes-nadia.nadia",
+      "typeVersion": 1,
+      "position": [
+        960,
+        0
+      ],
+      "credentials": {
+        "nadiaApi": {
+          "id": "REPLACE",
+          "name": "Nadia account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every hour": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Only new items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only new items": {
+      "main": [
+        [
+          {
+            "node": "Write the caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write the caption": {
+      "main": [
+        [
+          {
+            "node": "Nadia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

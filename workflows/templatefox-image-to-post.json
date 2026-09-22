@@ -1,0 +1,251 @@
+{
+  "name": "Render an image with TemplateFox and schedule it with Nadia",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Turn a spreadsheet row into a designed image post\n\nA row of data is not a post. This workflow takes rows from a Google Sheet, renders each one through a TemplateFox image template, hands the resulting URL to Nadia, and schedules the post on the channel you choose.\n\nNadia fetches the image itself from the URL, so no binary ever travels through n8n.\n\n### How it works\n\n1. **Schedule Trigger** runs once a day.\n2. **Google Sheets** reads the rows still marked as not posted.\n3. **HTTP Request** calls the TemplateFox image API with the row as template data and gets back an image URL.\n4. **Nadia — Upload From URL** stores that image in the media library and returns its id and path.\n5. **Nadia — Create Post** schedules the post in the next free slot with the image attached.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Put your TemplateFox API key in the **HTTP Request** header and your template id in the body.\n3. Point **Google Sheets** at your spreadsheet; the columns become the template fields.\n4. Open the last **Nadia** node, pick your channel and fill the settings it loads.\n\n### Customize\n\nReplace the spreadsheet with any source — a database, a webhook, an RSS feed. Only step 3 needs to know the shape of your data.",
+        "width": 520,
+        "height": 620
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -680,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## The data\nOne row per post to publish.",
+        "width": 380,
+        "height": 220,
+        "color": 7
+      },
+      "id": "sticky-note1",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## The image\nTemplateFox renders the row into a designed image and returns its URL.",
+        "width": 380,
+        "height": 220,
+        "color": 7
+      },
+      "id": "sticky-note2",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        320,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## The post\nNadia fetches the image, then schedules the post in the next free slot.",
+        "width": 460,
+        "height": 220,
+        "color": 7
+      },
+      "id": "sticky-note3",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        740,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "every-morning",
+      "name": "Every morning",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "posted",
+              "lookupValue": "no"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "google-sheets",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        160,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.templatefox.com/v1/image/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "YOUR_TEMPLATEFOX_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ template_id: 'YOUR_TEMPLATE_ID', data: $json }) }}",
+        "options": {}
+      },
+      "id": "render-with-templatefox",
+      "name": "Render with TemplateFox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "uploadFromUrl",
+        "fileUrl": "={{ $json.url }}"
+      },
+      "id": "upload-the-image",
+      "name": "Upload the image",
+      "type": "n8n-nodes-nadia.nadia",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "nadiaApi": {
+          "id": "REPLACE",
+          "name": "Nadia account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "createPost",
+        "channelId": "",
+        "type": "schedule",
+        "useFreeSlot": true,
+        "content": "={{ $('Google Sheets').item.json.caption }}",
+        "media": "={{ JSON.stringify([{ id: $json.id, path: $json.path }]) }}",
+        "settings": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "additionalFields": {}
+      },
+      "id": "schedule-the-post",
+      "name": "Schedule the post",
+      "type": "n8n-nodes-nadia.nadia",
+      "typeVersion": 1,
+      "position": [
+        900,
+        0
+      ],
+      "credentials": {
+        "nadiaApi": {
+          "id": "REPLACE",
+          "name": "Nadia account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every morning": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Render with TemplateFox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render with TemplateFox": {
+      "main": [
+        [
+          {
+            "node": "Upload the image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload the image": {
+      "main": [
+        [
+          {
+            "node": "Schedule the post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
