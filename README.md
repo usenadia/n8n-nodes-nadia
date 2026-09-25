@@ -40,6 +40,10 @@ Settings → **Community Nodes** → **Install** → `n8n-nodes-nadia`.
 | Get Brands | `GET /groups` |
 | Get Channel Settings | `GET /integration-settings/:id` |
 | Get Analytics | `GET /analytics/:id` |
+| Create Card | `POST /contents` |
+| Get Cards | `GET /contents` (filtered by column in the node) |
+| Move Card | `PUT /contents/:id/move` |
+| Update Card | `PUT /contents/:id` |
 
 ### Channels and brands are dropdowns
 

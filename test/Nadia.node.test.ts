@@ -33,6 +33,10 @@ describe('Nadia node description', () => {
 				'getPosts',
 				'uploadFile',
 				'uploadFromUrl',
+				'createContent',
+				'getContents',
+				'moveContent',
+				'updateContent',
 			]),
 		);
 	});
@@ -174,5 +178,56 @@ describe('NadiaApi credential', () => {
 		for (const property of credential.properties) {
 			expect(property.description).not.toMatch(/\[.+\]\(.+\)/);
 		}
+	});
+});
+
+describe('content board operations', () => {
+	const run = async (operation: string, params: Record<string, unknown>, response: unknown) => {
+		const httpRequestWithAuthentication = jest.fn().mockResolvedValue(response);
+		const context = {
+			getInputData: () => [{ json: {} }],
+			getNodeParameter: (name: string, _i: number, fallback?: unknown) =>
+				name === 'operation' ? operation : name in params ? params[name] : fallback,
+			getCredentials: jest.fn().mockResolvedValue({ apiKey: 'k', host: 'https://h/api' }),
+			helpers: {
+				httpRequestWithAuthentication,
+				returnJsonArray: (data: unknown) =>
+					(Array.isArray(data) ? data : [data]).map((json) => ({ json })),
+				constructExecutionMetaData: (items: unknown[]) => items,
+			},
+			continueOnFail: () => false,
+			getNode: () => ({ name: 'Nadia' }),
+		};
+		const [out] = await node.execute.call(context as never);
+		return { out, request: httpRequestWithAuthentication.mock.calls[0][1] };
+	};
+
+	it('creates a card with only the fields that were filled', async () => {
+		const { request } = await run(
+			'createContent',
+			{ cardTitle: 'Malta', stage: 'IDEA', cardFields: { hook: 'Accroche', script: '' } },
+			{ id: 'k1' },
+		);
+
+		expect(request.method).toBe('POST');
+		expect(request.url).toBe('https://h/api/public/v1/contents');
+		expect(request.body).toEqual({ title: 'Malta', stage: 'IDEA', hook: 'Accroche' });
+	});
+
+	it('moves a card with its column', async () => {
+		const { request } = await run('moveContent', { cardId: 'k1', stage: 'SCRIPT' }, { id: 'k1' });
+
+		expect(request.method).toBe('PUT');
+		expect(request.url).toBe('https://h/api/public/v1/contents/k1/move');
+		expect(request.body).toEqual({ stage: 'SCRIPT' });
+	});
+
+	it('filters the cards by column', async () => {
+		const { out } = await run('getContents', { stageFilter: 'SCRIPT' }, [
+			{ id: 'a', stage: 'IDEA' },
+			{ id: 'b', stage: 'SCRIPT' },
+		]);
+
+		expect(out.map((item) => item.json.id)).toEqual(['b']);
 	});
 });

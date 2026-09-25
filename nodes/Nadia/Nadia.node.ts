@@ -24,6 +24,17 @@ import {
 
 const POST_OPS = ['createPost'];
 
+// The content board (docs/roadmap/20-content-os.md): one card per video.
+const STAGE_OPTIONS = [
+	{ name: 'Idea', value: 'IDEA' },
+	{ name: 'Script', value: 'SCRIPT' },
+	{ name: 'Approved', value: 'VALIDATED' },
+	{ name: 'To Shoot', value: 'TO_SHOOT' },
+	{ name: 'To Edit', value: 'TO_EDIT' },
+	{ name: 'To Schedule', value: 'TO_SCHEDULE' },
+	{ name: 'Published', value: 'PUBLISHED' },
+];
+
 export class Nadia implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Nadia',
@@ -32,7 +43,8 @@ export class Nadia implements INodeType {
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Schedule social posts, upload media and read analytics with Nadia',
+		description:
+			'Schedule social posts, upload media, read analytics and fill the content board with Nadia',
 		usableAsTool: true,
 		defaults: {
 			name: 'Nadia',
@@ -52,6 +64,12 @@ export class Nadia implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				options: [
+					{
+						name: 'Create Card',
+						value: 'createContent',
+						description: 'Add a video idea to the content board',
+						action: 'Create a card',
+					},
 					{
 						name: 'Create Post',
 						value: 'createPost',
@@ -83,6 +101,12 @@ export class Nadia implements INodeType {
 						action: 'Get many brands',
 					},
 					{
+						name: 'Get Cards',
+						value: 'getContents',
+						description: 'Get the cards of the content board',
+						action: 'Get many cards',
+					},
+					{
 						name: 'Get Channel Settings',
 						value: 'getChannelSettings',
 						description: 'Get the rules, max length and required settings of a channel provider',
@@ -99,6 +123,18 @@ export class Nadia implements INodeType {
 						value: 'getPosts',
 						description: 'Get the posts of a date range',
 						action: 'Get many posts',
+					},
+					{
+						name: 'Move Card',
+						value: 'moveContent',
+						description: 'Move a card to another column of the content board',
+						action: 'Move a card',
+					},
+					{
+						name: 'Update Card',
+						value: 'updateContent',
+						description: 'Change the title, hook, script or notes of a card',
+						action: 'Update a card',
 					},
 					{
 						name: 'Upload File',
@@ -364,6 +400,113 @@ export class Nadia implements INodeType {
 			},
 
 			// ──────────────────────────────────────────────────────────────
+			// Content board
+			// ──────────────────────────────────────────────────────────────
+			{
+				displayName: 'Title',
+				name: 'cardTitle',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'Short title of the video',
+				displayOptions: {
+					show: { operation: ['createContent'] },
+				},
+			},
+			{
+				displayName: 'Card ID',
+				name: 'cardId',
+				type: 'string',
+				default: '',
+				required: true,
+				description: 'ID of the card, as returned by Create Card or Get Cards',
+				displayOptions: {
+					show: { operation: ['moveContent', 'updateContent'] },
+				},
+			},
+			{
+				displayName: 'Column',
+				name: 'stage',
+				type: 'options',
+				options: STAGE_OPTIONS,
+				default: 'IDEA',
+				description: 'Column of the board the card goes to',
+				displayOptions: {
+					show: { operation: ['createContent', 'moveContent'] },
+				},
+			},
+			{
+				displayName: 'Column',
+				name: 'stageFilter',
+				type: 'options',
+				options: [{ name: 'All', value: '' }, ...STAGE_OPTIONS],
+				default: '',
+				description: 'Only return the cards of this column',
+				displayOptions: {
+					show: { operation: ['getContents'] },
+				},
+			},
+			{
+				displayName: 'Card Fields',
+				name: 'cardFields',
+				type: 'collection',
+				placeholder: 'Add Field',
+				default: {},
+				displayOptions: {
+					show: { operation: ['createContent', 'updateContent'] },
+				},
+				options: [
+					{
+						displayName: 'Hook',
+						name: 'hook',
+						type: 'string',
+						typeOptions: { rows: 2 },
+						default: '',
+						description: 'The first seconds of the video, what stops the scroll',
+					},
+					{
+						displayName: 'Notes',
+						name: 'notes',
+						type: 'string',
+						typeOptions: { rows: 3 },
+						default: '',
+					},
+					{
+						displayName: 'Planned Date',
+						name: 'plannedAt',
+						type: 'dateTime',
+						default: '',
+						description: 'When the video should go out',
+					},
+					{
+						displayName: 'Script',
+						name: 'script',
+						type: 'string',
+						typeOptions: { rows: 5 },
+						default: '',
+					},
+					{
+						displayName: 'Target Channel Names or IDs',
+						name: 'integrationIds',
+						type: 'multiOptions',
+						typeOptions: {
+							loadOptionsMethod: 'getChannels',
+						},
+						default: [],
+						description:
+							'Channels the video is meant for. Choose from the list, or specify IDs using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					},
+					{
+						displayName: 'Title',
+						name: 'title',
+						type: 'string',
+						default: '',
+						description: 'New title of the card (Update Card only)',
+					},
+				],
+			},
+
+			// ──────────────────────────────────────────────────────────────
 			// Analytics
 			// ──────────────────────────────────────────────────────────────
 			{
@@ -460,7 +603,31 @@ export class Nadia implements INodeType {
 				const operation = this.getNodeParameter('operation', i) as string;
 				let responseData: IDataObject | IDataObject[] = {};
 
-				if (operation === 'createPost') {
+				if (operation === 'createContent') {
+					const stage = this.getNodeParameter('stage', i, 'IDEA') as string;
+					responseData = await nadiaApiRequest.call(this, 'POST', '/contents', {
+						...cardFields.call(this, i),
+						title: this.getNodeParameter('cardTitle', i) as string,
+						stage,
+					});
+				} else if (operation === 'getContents') {
+					const stage = this.getNodeParameter('stageFilter', i, '') as string;
+					const cards: IDataObject[] = await nadiaApiRequest.call(this, 'GET', '/contents');
+					responseData = (cards || []).filter((card) => !stage || card.stage === stage);
+				} else if (operation === 'moveContent') {
+					const cardId = this.getNodeParameter('cardId', i) as string;
+					responseData = await nadiaApiRequest.call(this, 'PUT', `/contents/${cardId}/move`, {
+						stage: this.getNodeParameter('stage', i) as string,
+					});
+				} else if (operation === 'updateContent') {
+					const cardId = this.getNodeParameter('cardId', i) as string;
+					responseData = await nadiaApiRequest.call(
+						this,
+						'PUT',
+						`/contents/${cardId}`,
+						cardFields.call(this, i),
+					);
+				} else if (operation === 'createPost') {
 					responseData = await createPost.call(this, i);
 				} else if (operation === 'deletePost') {
 					const postId = this.getNodeParameter('postId', i) as string;
@@ -537,6 +704,28 @@ export class Nadia implements INodeType {
 
 		return [returnData];
 	}
+}
+
+// The fields of the collection that were actually filled, as the API names
+// them. An empty collection sends nothing, so an update leaves the card as is.
+function cardFields(this: IExecuteFunctions, i: number): IDataObject {
+	const fields = this.getNodeParameter('cardFields', i, {}) as IDataObject;
+	const body: IDataObject = {};
+
+	for (const key of ['title', 'hook', 'script', 'notes'] as const) {
+		if (typeof fields[key] === 'string' && fields[key] !== '') {
+			body[key] = fields[key];
+		}
+	}
+	if (fields.plannedAt) {
+		body.plannedAt = new Date(fields.plannedAt as string).toISOString();
+	}
+	const channels = toStringArray(fields.integrationIds);
+	if (channels.length) {
+		body.integrationIds = channels;
+	}
+
+	return body;
 }
 
 async function createPost(this: IExecuteFunctions, i: number): Promise<IDataObject> {
