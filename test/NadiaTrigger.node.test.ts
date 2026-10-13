@@ -24,6 +24,7 @@ describe('NadiaTrigger description', () => {
 			'comment.received',
 			'dm.received',
 			'automation.triggered',
+			'automation.email_captured',
 		]);
 	});
 });

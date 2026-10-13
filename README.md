@@ -9,7 +9,7 @@ Two nodes ship in this package:
 | Node | What it does |
 |---|---|
 | **Nadia** | actions — create posts, upload media, list channels, read analytics. Also available to the AI Agent as a tool. |
-| **Nadia Trigger** | starts a workflow on `post.published`, `comment.received`, `dm.received` or `automation.triggered`. It registers its own webhook, so there is nothing to set up in the app. |
+| **Nadia Trigger** | starts a workflow on `post.published`, `comment.received`, `dm.received`, `automation.triggered` or `automation.email_captured`. It registers its own webhook, so there is nothing to set up in the app. |
 
 ## Installation
 
