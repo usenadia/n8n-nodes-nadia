@@ -21,7 +21,7 @@ const sources = [
 /**
  * This package is published under MIT from an AGPL-3.0 repository. That only
  * holds as long as it shares no code with the app: no import may leave the
- * package, and no Nadia/Postiz internal may be pulled in.
+ * package, and no monorepo internal (ours or upstream's) may be pulled in.
  */
 describe('licence isolation', () => {
 	it.each(sources.map((f) => [f.slice(ROOT.length + 1), f]))(
