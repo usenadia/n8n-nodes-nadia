@@ -68,7 +68,7 @@ export class NadiaTrigger implements INodeType {
 					{
 						name: 'Automation Triggered',
 						value: 'automation.triggered',
-						description: 'A comment matched a comment-automation rule and the reply was sent',
+						description: 'A comment matched an automation and the reply was sent',
 					},
 					{
 						name: 'Email Captured',
