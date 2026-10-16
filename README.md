@@ -106,5 +106,4 @@ and finds the wrong one.
 
 ## Licence
 
-MIT. Derived in part from
-[`n8n-nodes-postiz`](https://github.com/gitroomhq/postiz-n8n) (MIT).
+MIT. Derived in part from upstream's n8n node (MIT).

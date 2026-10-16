@@ -31,8 +31,7 @@ describe('licence isolation', () => {
 			const imports = [...content.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
 
 			for (const specifier of imports) {
-				expect(specifier).not.toMatch(/^@gitroom\//);
-				expect(specifier).not.toMatch(/^@postiz\//);
+				expect(specifier).not.toMatch(/^@nadia\//);
 
 				if (specifier.startsWith('.')) {
 					const resolved = resolve(file, '..', specifier);
