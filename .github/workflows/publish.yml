@@ -1,0 +1,57 @@
+# Lives in the mirror repository (usenadia/n8n-nodes-nadia), pushed there by
+# .github/workflows/publish-n8n.yml of the nadia repo. Edit it here, never
+# in the mirror.
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment: npm
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` — action-setup v4 reads `packageManager` from
+      # package.json, and specifying both makes it abort.
+      - uses: pnpm/action-setup@v4
+
+      # Node 24, not 22: publishing through OIDC needs npm >= 11.5.1, and
+      # Node 22 still ships npm 10 (the publish step pins npm 12 anyway).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Take the version from the release tag
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#n8n-v}"
+          VERSION="${VERSION#v}"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      # OIDC / Trusted Publisher — no NPM_TOKEN anywhere. Published
+      # directly, no approval step: the trusted publisher allows `npm
+      # publish` (Vincent, 2026-10-21 — a release must not wait on a manual
+      # click). The official scan already gated the tarball in the nadia repo
+      # before the tag.
+      - name: Publish to npm
+        run: npx --yes npm@12 publish --access public
