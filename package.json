@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-nadia",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "n8n community node for Nadia \u2014 schedule social posts, upload media, read analytics and react to publications, comments and DMs",
   "keywords": [
     "n8n-community-node-package",
