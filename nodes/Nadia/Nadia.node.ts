@@ -6,10 +6,11 @@ import type {
 	INodePropertyOptions,
 	INodeType,
 	INodeTypeDescription,
+	JsonObject,
 	ResourceMapperField,
 	ResourceMapperFields,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import {
 	defaultDateRange,
@@ -49,8 +50,8 @@ export class Nadia implements INodeType {
 		defaults: {
 			name: 'Nadia',
 		},
-		inputs: ['main'],
-		outputs: ['main'],
+		inputs: [NodeConnectionTypes.Main],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'nadiaApi',
@@ -575,10 +576,10 @@ export class Nadia implements INodeType {
 				const required: string[] = Array.isArray(schema.required) ? schema.required : [];
 
 				const fields: ResourceMapperField[] = Object.entries(
-					schema.properties as Record<string, any>,
+					schema.properties as Record<string, IDataObject>,
 				).map(([key, definition]) => ({
 					id: key,
-					displayName: definition?.title || key,
+					displayName: String(definition?.title || key),
 					required: required.includes(key),
 					defaultMatch: false,
 					display: true,
@@ -698,7 +699,13 @@ export class Nadia implements INodeType {
 					});
 					continue;
 				}
-				throw error;
+				// Both constructors hand back an error that is already theirs, so an API
+				// error keeps its HTTP context; a plain Error from a validation helper
+				// (parseMedia…) gains the node and the item.
+				if (error instanceof NodeApiError) {
+					throw new NodeApiError(this.getNode(), error as unknown as JsonObject);
+				}
+				throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
 			}
 		}
 

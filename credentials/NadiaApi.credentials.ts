@@ -1,5 +1,6 @@
 import type {
 	IAuthenticateGeneric,
+	Icon,
 	ICredentialTestRequest,
 	ICredentialType,
 	INodeProperties,
@@ -9,6 +10,8 @@ export class NadiaApi implements ICredentialType {
 	name = 'nadiaApi';
 
 	displayName = 'Nadia API';
+
+	icon: Icon = 'file:nadia.svg';
 
 	documentationUrl = 'https://usenadia.com/docs/public-api/introduction';
 

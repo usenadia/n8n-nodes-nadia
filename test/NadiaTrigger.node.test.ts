@@ -19,12 +19,13 @@ describe('NadiaTrigger description', () => {
 
 	it('offers every event the backend emits', () => {
 		const events = node.description.properties.find((p) => p.name === 'events');
-		expect((events?.options as Array<{ value: string }>).map((o) => o.value)).toEqual([
-			'post.published',
+		// Listed alphabetically by label, as the n8n linter requires.
+		expect((events?.options as Array<{ value: string }>).map((o) => o.value).sort()).toEqual([
+			'automation.email_captured',
+			'automation.triggered',
 			'comment.received',
 			'dm.received',
-			'automation.triggered',
-			'automation.email_captured',
+			'post.published',
 		]);
 	});
 });

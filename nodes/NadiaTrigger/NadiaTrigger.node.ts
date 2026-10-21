@@ -8,7 +8,7 @@ import type {
 	IWebhookFunctions,
 	IWebhookResponseData,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 import { createHmac, timingSafeEqual } from 'crypto';
 
 import { nadiaApiRequest, type NadiaChannel } from '../Nadia/GenericFunctions';
@@ -26,7 +26,7 @@ export class NadiaTrigger implements INodeType {
 			name: 'Nadia Trigger',
 		},
 		inputs: [],
-		outputs: ['main'],
+		outputs: [NodeConnectionTypes.Main],
 		credentials: [
 			{
 				name: 'nadiaApi',
@@ -51,9 +51,9 @@ export class NadiaTrigger implements INodeType {
 				description: 'The events this trigger subscribes to',
 				options: [
 					{
-						name: 'Post Published',
-						value: 'post.published',
-						description: 'A post was published on a channel',
+						name: 'Automation Triggered',
+						value: 'automation.triggered',
+						description: 'A comment matched an automation and the reply was sent',
 					},
 					{
 						name: 'Comment Received',
@@ -66,15 +66,15 @@ export class NadiaTrigger implements INodeType {
 						description: 'A direct message was received on a connected channel',
 					},
 					{
-						name: 'Automation Triggered',
-						value: 'automation.triggered',
-						description: 'A comment matched an automation and the reply was sent',
-					},
-					{
 						name: 'Email Captured',
 						value: 'automation.email_captured',
 						description:
 							'An automation recorded the email address of the person it is talking to',
+					},
+					{
+						name: 'Post Published',
+						value: 'post.published',
+						description: 'A post was published on a channel',
 					},
 				],
 			},
@@ -172,8 +172,13 @@ export class NadiaTrigger implements INodeType {
 
 				try {
 					await nadiaApiRequest.call(this, 'DELETE', `/webhooks/${webhookData.webhookId}`);
-				} catch {
-					// Already gone on the Nadia side — nothing to clean up.
+				} catch (error) {
+					// Already gone on the Nadia side (deleted from the app) — nothing to
+					// clean up, but say so rather than swallow it.
+					this.logger.debug('Nadia webhook already removed', {
+						webhookId: webhookData.webhookId,
+						error: (error as Error).message,
+					});
 				}
 
 				delete webhookData.webhookId;

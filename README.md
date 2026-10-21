@@ -13,18 +13,72 @@ Two nodes ship in this package:
 
 ## Installation
 
-Settings → **Community Nodes** → **Install** → `n8n-nodes-nadia`.
+On a self-hosted n8n: Settings → **Community Nodes** → **Install** →
+`n8n-nodes-nadia`. See n8n's
+[community nodes installation guide](https://docs.n8n.io/integrations/community-nodes/installation-and-management/).
 
-## Credentials
+## Compatibility
+
+Built and tested against n8n 2.x (`n8n-workflow` 2.x). Requires Node.js 20.15
+or later.
+
+## Authentication
+
+The node authenticates with a Nadia API key, sent in the `Authorization`
+header of every call to the public API (`/public/v1`).
+
+1. In Nadia, open **Settings → Developers** and copy your API key.
+2. In n8n, create a **Nadia API** credential and fill in:
 
 | Field | Notes |
 |---|---|
-| **API Key** | Settings → Developers in Nadia. An OAuth token (`pos_…`) works too. |
+| **API Key** | The key from Settings → Developers. An OAuth token (`pos_…`) works too. |
 | **Host** | `https://app.usenadia.com/api` for the hosted app. |
+
+Saving the credential calls `GET /public/v1/is-connected`, so a wrong key or
+host fails right away.
 
 > **Self-hosting?** The API lives behind `/api`, so the host must end with it —
 > `https://social.example.com/api`, not `https://social.example.com`. This is
 > the single most common setup mistake.
+
+## Usage
+
+**Schedule a post.** Add a **Nadia** node, choose **Create Post**, pick a
+**Channel** from the dropdown, write the **Content**, and either set a date or
+turn on **Use Next Free Slot** to let Nadia book the next open slot of that
+channel's posting schedule. The channel's own settings (TikTok privacy, Instagram
+post type…) appear below once the channel is picked.
+
+**Post with an image.** Put an **Upload File From URL** (or **Upload File**,
+for binary data from a previous node) before **Create Post**, and pass its
+output to **Media**:
+
+```
+{{ JSON.stringify([{ id: $json.id, path: $json.path }]) }}
+```
+
+**React to what happens on your accounts.** Add a **Nadia Trigger**, tick the
+events you want, and activate the workflow. Each delivery is one item: the
+envelope described under [Trigger](#trigger), with the event payload in
+`$json.data`.
+
+**Let an AI Agent post for you.** The **Nadia** node is usable as a tool: attach
+it to an **AI Agent** node and the agent can list channels, find a free slot and
+schedule posts.
+
+## Example workflows
+
+Four ready-to-import workflows live in the
+[`workflows/`](https://github.com/usenadia/n8n-nodes-nadia/tree/main/workflows)
+folder of the repository (Workflows → **Import from File**):
+
+| Workflow | What it does |
+|---|---|
+| [Schedule social posts from an RSS feed with AI captions](https://github.com/usenadia/n8n-nodes-nadia/blob/main/workflows/rss-to-scheduled-post.json) | hourly feed read → AI caption → post scheduled in the next free slot |
+| [Send a Slack message for every post Nadia publishes](https://github.com/usenadia/n8n-nodes-nadia/blob/main/workflows/published-post-to-slack.json) | **Nadia Trigger** on `post.published` → one Slack message per publication |
+| [Log Instagram DMs from Nadia to Google Sheets](https://github.com/usenadia/n8n-nodes-nadia/blob/main/workflows/dm-to-google-sheets.json) | **Nadia Trigger** on `dm.received` → one row per inbound DM |
+| [Schedule image posts from Google Sheets rows with TemplateFox](https://github.com/usenadia/n8n-nodes-nadia/blob/main/workflows/templatefox-image-to-post.json) | sheet row → TemplateFox render → upload → scheduled post |
 
 ## Operations
 
@@ -100,9 +154,13 @@ the packed tarball before it is published) and
 `node scripts/check-n8n-contract.mjs` (every endpoint this node calls still
 exists in the API).
 
-`lint` sets `ESLINT_USE_FLAT_CONFIG=false`: this package keeps an `.eslintrc.js`
-while the repository around it uses flat config, and ESLint 8 otherwise walks up
-and finds the wrong one.
+`lint` is n8n's own `n8n-node lint` (from `@n8n/node-cli`), in strict mode:
+`eslint.config.mjs` must stay the default one it generates.
+
+## Resources
+
+- [Nadia public API documentation](https://usenadia.com/docs/public-api/introduction)
+- [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
 
 ## Licence
 

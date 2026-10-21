@@ -1,3 +1,6 @@
+// This test runs in Node under jest, never inside n8n: the n8n Cloud import and
+// global restrictions do not apply to it.
+/* eslint-disable @n8n/community-nodes/no-restricted-imports, @n8n/community-nodes/no-restricted-globals */
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 

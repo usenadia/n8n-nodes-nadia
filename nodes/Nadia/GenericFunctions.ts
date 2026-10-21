@@ -28,6 +28,9 @@ export async function nadiaApiRequest(
 	body?: IDataObject,
 	query?: IDataObject,
 	overrides?: Partial<IHttpRequestOptions>,
+	// The public API answers with a different shape per route (an array of
+	// channels, a post, `{ output }`…); each caller reads what its route returns.
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
 	const credentials = await this.getCredentials('nadiaApi');
 	const host = String(credentials.host || '').replace(/\/+$/, '');
@@ -149,6 +152,14 @@ export interface NadiaMedia {
  * `path` too, and a post silently scheduled without its image is worse than a
  * loud error here.
  */
+function parseJsonOrUndefined(text: string): unknown {
+	try {
+		return JSON.parse(text);
+	} catch {
+		return undefined;
+	}
+}
+
 export function parseMedia(value: unknown): NadiaMedia[] {
 	if (value === null || value === undefined || value === '') {
 		return [];
@@ -160,9 +171,8 @@ export function parseMedia(value: unknown): NadiaMedia[] {
 		if (!trimmed) {
 			return [];
 		}
-		try {
-			raw = JSON.parse(trimmed);
-		} catch {
+		raw = parseJsonOrUndefined(trimmed);
+		if (raw === undefined) {
 			throw new Error(
 				'Media must be a JSON array of objects with `id` and `path` — pass the output of an Upload operation',
 			);
@@ -199,7 +209,7 @@ export function parseMedia(value: unknown): NadiaMedia[] {
  * in step with the backend without a release.
  */
 export function jsonSchemaTypeToFieldType(
-	schema: Record<string, any>,
+	schema: IDataObject,
 ): 'string' | 'number' | 'boolean' | 'array' | 'object' {
 	const type = Array.isArray(schema?.type) ? schema.type[0] : schema?.type;
 	switch (type) {

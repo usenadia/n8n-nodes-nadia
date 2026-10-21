@@ -1,7 +1,7 @@
 {
   "name": "n8n-nodes-nadia",
   "version": "0.1.1",
-  "description": "n8n community node for Nadia \u2014 schedule social posts, upload media, read analytics and react to publications, comments and DMs",
+  "description": "n8n community node for Nadia — schedule social posts, upload media, read analytics and react to publications, comments and DMs",
   "keywords": [
     "n8n-community-node-package",
     "social media",
@@ -29,8 +29,8 @@
     "build": "rimraf dist && tsc && gulp build:icons",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts nodes credentials index.ts",
-    "lintfix": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .ts nodes credentials index.ts --fix",
+    "lint": "n8n-node lint",
+    "lintfix": "n8n-node lint --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "prepublishOnly": "pnpm build"
@@ -40,6 +40,7 @@
   ],
   "n8n": {
     "n8nNodesApiVersion": 1,
+    "strict": true,
     "credentials": [
       "dist/credentials/NadiaApi.credentials.js"
     ],
@@ -49,12 +50,10 @@
     ]
   },
   "devDependencies": {
+    "@n8n/node-cli": "0.52.0",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.19.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "eslint": "^8.57.0",
-    "eslint-plugin-n8n-nodes-base": "^1.16.3",
+    "eslint": "9.29.0",
     "gulp": "^5.0.0",
     "jest": "^29.7.0",
     "n8n-workflow": "*",
