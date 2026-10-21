@@ -1,26 +1,26 @@
 {
-  "name": "Post a Slack message whenever Nadia publishes",
+  "name": "Send a Slack message for every post Nadia publishes",
   "nodes": [
     {
       "parameters": {
-        "content": "## Tell your team in Slack every time a post goes live\n\nNadia publishes on a schedule, which means posts go out while nobody is watching. This workflow turns each publication into one Slack message with the channel, the text and a link, so the team sees what the account said without opening the app.\n\nIt uses the **Nadia Trigger**, which registers its own webhook when you activate the workflow and removes it when you deactivate it. There is nothing to configure inside Nadia.\n\n### How it works\n\n1. **Nadia Trigger** receives a signed `post.published` delivery.\n2. **Set** flattens the envelope into the few fields the message needs.\n3. **Slack** posts to the channel of your choice.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Activate the workflow — the trigger registers the webhook at that moment. n8n must be reachable from the internet over HTTPS.\n3. Add your **Slack** credential and pick a channel.\n\n### Customize\n\nAdd channels to the trigger to watch only some accounts, or tick `automation.triggered` as well to also hear about comment automations that fired.",
-        "width": 520,
-        "height": 560
+        "content": "## Tell your team in Slack every time a post goes live\n\n> **Self-hosted n8n only.** This template uses the `n8n-nodes-nadia` community node, which n8n has not verified yet. Install it first: Settings -> Community Nodes -> Install -> `n8n-nodes-nadia`.\n\nNadia publishes on a schedule, so posts go out while nobody is watching. This workflow turns each publication into one Slack message with the channel, the text and a link, so the team sees what the account said without opening the app.\n\nThe **Nadia Trigger** registers its own webhook when you activate the workflow and removes it when you deactivate it. There is nothing to configure inside Nadia.\n\n### How it works\n\n1. **On published post** receives a signed `post.published` delivery.\n2. **Shape the message** flattens the envelope into the fields the message needs.\n3. **Post to Slack** sends it to the channel of your choice.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers in Nadia, host `https://app.usenadia.com/api`.\n2. Add your **Slack** credential to **Post to Slack** and pick a channel.\n3. Activate the workflow: the trigger registers the webhook at that moment. n8n must be reachable from the internet over HTTPS.\n\n### Customize\n\nPick channels on the trigger to watch only some accounts, or add `automation.triggered` to also hear about comment automations that fired.",
+        "width": 560,
+        "height": 720
       },
       "id": "sticky-note",
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -620,
-        -220
+        -660,
+        -240
       ]
     },
     {
       "parameters": {
         "content": "## The webhook registers itself\nActivate the workflow and Nadia starts delivering. Deactivate it and the webhook is removed.",
-        "width": 420,
-        "height": 240,
+        "width": 440,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note1",
@@ -29,14 +29,14 @@
       "typeVersion": 1,
       "position": [
         -40,
-        -220
+        -240
       ]
     },
     {
       "parameters": {
         "content": "## One readable message\nThe envelope is flattened before it reaches Slack.",
-        "width": 420,
-        "height": 240,
+        "width": 460,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note2",
@@ -44,8 +44,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        460,
-        -220
+        440,
+        -240
       ]
     },
     {
@@ -56,8 +56,8 @@
         "channelIds": [],
         "verifySignature": true
       },
-      "id": "nadia-trigger",
-      "name": "Nadia Trigger",
+      "id": "on-published-post",
+      "name": "On published post",
       "type": "n8n-nodes-nadia.nadiaTrigger",
       "typeVersion": 1,
       "position": [
@@ -69,8 +69,7 @@
           "id": "REPLACE",
           "name": "Nadia account"
         }
-      },
-      "webhookId": "REPLACE"
+      }
     },
     {
       "parameters": {
@@ -103,7 +102,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        240,
+        480,
         0
       ]
     },
@@ -118,12 +117,12 @@
         "text": "=*{{ $json.channel }}* just published\n\n{{ $json.text }}\n\n{{ $json.releaseUrl }}",
         "otherOptions": {}
       },
-      "id": "slack",
-      "name": "Slack",
+      "id": "post-to-slack",
+      "name": "Post to Slack",
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2.2,
       "position": [
-        480,
+        700,
         0
       ],
       "credentials": {
@@ -135,7 +134,7 @@
     }
   ],
   "connections": {
-    "Nadia Trigger": {
+    "On published post": {
       "main": [
         [
           {
@@ -150,7 +149,7 @@
       "main": [
         [
           {
-            "node": "Slack",
+            "node": "Post to Slack",
             "type": "main",
             "index": 0
           }

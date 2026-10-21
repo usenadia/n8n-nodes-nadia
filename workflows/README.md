@@ -7,10 +7,10 @@ They are also what we submit to the [n8n template library](https://n8n.io/workfl
 
 | Workflow | File | What it does |
 |---|---|---|
-| RSS to scheduled post | `rss-to-scheduled-post.json` | Hourly feed read → AI caption → post scheduled in the next free slot |
-| Published post to Slack | `published-post-to-slack.json` | **Trigger** on `post.published` → one Slack message per publication |
-| DM to Google Sheets | `dm-to-google-sheets.json` | **Trigger** on `dm.received` → one row per inbound DM |
-| TemplateFox image to post | `templatefox-image-to-post.json` | Sheet row → TemplateFox render → upload → scheduled post |
+| Schedule social posts from an RSS feed with AI captions in Nadia | `rss-to-scheduled-post.json` | Hourly feed read → AI caption → post scheduled in the next free slot |
+| Send a Slack message for every post Nadia publishes | `published-post-to-slack.json` | **Trigger** on `post.published` → one Slack message per publication |
+| Log Instagram DMs from Nadia to Google Sheets | `dm-to-google-sheets.json` | **Trigger** on `dm.received` → one row per inbound DM |
+| Schedule image posts from Google Sheets rows with TemplateFox and Nadia | `templatefox-image-to-post.json` | Sheet row → TemplateFox render → upload → scheduled post |
 
 The last one is the maltaexpat pipeline made public: it is the same
 data → TemplateFox → Nadia chain, with a spreadsheet standing in for the
@@ -36,13 +36,44 @@ the API refuses private and non-HTTPS webhook URLs.
 submission: exactly one yellow overview sticky of 100–300 words containing
 `### How it works` and `### Setup`, white (`color: 7`) section stickies under
 50 words, no overlapping nodes, no placeholder text, and every connection
-pointing at a node that exists.
+pointing at a node that exists. It also checks the rules for templates built on
+a community node and the hygiene n8n asks of every template:
+
+- the overview sticky carries the **"Self-hosted n8n only"** disclaimer (the
+  node is not verified yet, so n8n Cloud cannot install it);
+- no node keeps its default name (`Google Sheets`, `Nadia`, `HTTP Request`…);
+- no `webhookId` (a fixed one collides between two imports), no API key typed
+  into an HTTP header (use a credential), no picked spreadsheet, Slack channel
+  or Nadia channel, no e-mail address.
+
+Values the user has to fill go in a **Set** node named `Your settings` when
+there is more than a picker to set (feed URL, template id).
+
+### Images
+
+n8n.io cannot draw community nodes in its workflow preview, so every
+description opens with a screenshot of the canvas. One PNG per template, named
+after it: `images/<template>.png` (for example
+`images/rss-to-scheduled-post.png`), a capture of the whole canvas at
+1600 px wide or more. The PNGs are not part of the npm package (`files` is
+`dist`, and the build copies icons from `nodes/` and `credentials/` only).
+
+## Submitting to n8n.io
+
+1. Create a creator account on <https://creators.n8n.io/register> (once).
+2. Import the template in a self-hosted n8n with the node installed, check it
+   runs, and take the screenshot (see *Images*).
+3. In the Creator Portal, submit **one template at a time**: an unverified
+   creator only has one template in review, and the next one waits until it is
+   accepted. Paste the title and the description from
+   [`SUBMISSIONS.md`](SUBMISSIONS.md), then upload the JSON.
+4. Once it is published, put its link in the table below.
 
 ## Published on n8n.io
 
 | Workflow | Link |
 |---|---|
-| RSS to scheduled post | _pending submission_ |
-| Published post to Slack | _pending submission_ |
-| DM to Google Sheets | _pending submission_ |
-| TemplateFox image to post | _pending submission_ |
+| `rss-to-scheduled-post.json` | _pending submission_ |
+| `published-post-to-slack.json` | _pending submission_ |
+| `dm-to-google-sheets.json` | _pending submission_ |
+| `templatefox-image-to-post.json` | _pending submission_ |

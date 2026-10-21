@@ -1,26 +1,26 @@
 {
-  "name": "Log every Instagram DM Nadia receives to Google Sheets",
+  "name": "Log Instagram DMs from Nadia to Google Sheets",
   "nodes": [
     {
       "parameters": {
-        "content": "## Keep every incoming DM in a spreadsheet\n\nDirect messages are where the answers to a post actually arrive, and they are the first thing lost when an account grows. This workflow appends one row per inbound DM to a Google Sheet: who wrote, what they said, on which channel, and when.\n\nIt uses the **Nadia Trigger**, which registers its own webhook on activation, so nothing has to be set up inside Nadia.\n\n### How it works\n\n1. **Nadia Trigger** receives a signed `dm.received` delivery.\n2. **Set** flattens the envelope into one flat row.\n3. **Google Sheets** appends it.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Add your **Google Sheets** credential and pick the spreadsheet and tab.\n3. Give the sheet the columns `date`, `channel`, `username`, `message`, `storyId`.\n4. Activate the workflow — the webhook is registered at that moment.\n\n### Customize\n\nTick `comment.received` on the trigger to log public comments in the same sheet, and add an IF node before the append to separate the two.",
-        "width": 520,
-        "height": 560
+        "content": "## Keep every incoming Instagram DM in a spreadsheet\n\n> **Self-hosted n8n only.** This template uses the `n8n-nodes-nadia` community node, which n8n has not verified yet. Install it first: Settings -> Community Nodes -> Install -> `n8n-nodes-nadia`.\n\nDirect messages are where the answers to a post arrive, and they are the first thing lost when an account grows. This workflow appends one row per inbound DM to a Google Sheet: who wrote, what they said, on which channel, and when.\n\nThe **Nadia Trigger** registers its own webhook on activation, so nothing has to be set up inside Nadia.\n\n### How it works\n\n1. **On new DM** receives a signed `dm.received` delivery.\n2. **Flatten the DM** turns the envelope into one flat row.\n3. **Append the row** adds it to your sheet.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers in Nadia, host `https://app.usenadia.com/api`.\n2. Give your sheet the columns `date`, `channel`, `username`, `message`, `storyId`.\n3. Add your **Google Sheets** credential to **Append the row** and pick the spreadsheet and tab.\n4. Activate the workflow: the webhook is registered at that moment. n8n must be reachable from the internet over HTTPS.\n\n### Customize\n\nAdd `comment.received` on the trigger to log public comments in the same sheet, with an IF node before the append to separate the two.",
+        "width": 560,
+        "height": 740
       },
       "id": "sticky-note",
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -620,
-        -220
+        -660,
+        -240
       ]
     },
     {
       "parameters": {
         "content": "## One delivery per message\nSigned with the secret the trigger stored when it registered itself.",
-        "width": 420,
-        "height": 240,
+        "width": 440,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note1",
@@ -29,14 +29,14 @@
       "typeVersion": 1,
       "position": [
         -40,
-        -220
+        -240
       ]
     },
     {
       "parameters": {
         "content": "## One row per message\nFlatten first, append second.",
-        "width": 420,
-        "height": 240,
+        "width": 460,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note2",
@@ -44,8 +44,8 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        460,
-        -220
+        440,
+        -240
       ]
     },
     {
@@ -56,8 +56,8 @@
         "channelIds": [],
         "verifySignature": true
       },
-      "id": "nadia-trigger",
-      "name": "Nadia Trigger",
+      "id": "on-new-dm",
+      "name": "On new DM",
       "type": "n8n-nodes-nadia.nadiaTrigger",
       "typeVersion": 1,
       "position": [
@@ -69,8 +69,7 @@
           "id": "REPLACE",
           "name": "Nadia account"
         }
-      },
-      "webhookId": "REPLACE"
+      }
     },
     {
       "parameters": {
@@ -115,7 +114,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        240,
+        480,
         0
       ]
     },
@@ -138,12 +137,12 @@
         },
         "options": {}
       },
-      "id": "google-sheets",
-      "name": "Google Sheets",
+      "id": "append-the-row",
+      "name": "Append the row",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        480,
+        700,
         0
       ],
       "credentials": {
@@ -155,7 +154,7 @@
     }
   ],
   "connections": {
-    "Nadia Trigger": {
+    "On new DM": {
       "main": [
         [
           {
@@ -170,7 +169,7 @@
       "main": [
         [
           {
-            "node": "Google Sheets",
+            "node": "Append the row",
             "type": "main",
             "index": 0
           }

@@ -1,26 +1,26 @@
 {
-  "name": "Render an image with TemplateFox and schedule it with Nadia",
+  "name": "Schedule image posts from Google Sheets rows with TemplateFox and Nadia",
   "nodes": [
     {
       "parameters": {
-        "content": "## Turn a spreadsheet row into a designed image post\n\nA row of data is not a post. This workflow takes rows from a Google Sheet, renders each one through a TemplateFox image template, hands the resulting URL to Nadia, and schedules the post on the channel you choose.\n\nNadia fetches the image itself from the URL, so no binary ever travels through n8n.\n\n### How it works\n\n1. **Schedule Trigger** runs once a day.\n2. **Google Sheets** reads the rows still marked as not posted.\n3. **HTTP Request** calls the TemplateFox image API with the row as template data and gets back an image URL.\n4. **Nadia — Upload From URL** stores that image in the media library and returns its id and path.\n5. **Nadia — Create Post** schedules the post in the next free slot with the image attached.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.\n2. Put your TemplateFox API key in the **HTTP Request** header and your template id in the body.\n3. Point **Google Sheets** at your spreadsheet; the columns become the template fields.\n4. Open the last **Nadia** node, pick your channel and fill the settings it loads.\n\n### Customize\n\nReplace the spreadsheet with any source — a database, a webhook, an RSS feed. Only step 3 needs to know the shape of your data.",
-        "width": 520,
-        "height": 620
+        "content": "## Turn spreadsheet rows into designed image posts\n\n> **Self-hosted n8n only.** This template uses the `n8n-nodes-nadia` community node, which n8n has not verified yet. Install it first: Settings -> Community Nodes -> Install -> `n8n-nodes-nadia`.\n\nA row of data is not a post. Once a day this workflow reads the rows of a Google Sheet still marked as not posted, renders each one through a TemplateFox image template, hands the image URL to Nadia, and schedules the post on the channel you choose. Nadia fetches the image itself, so no binary travels through n8n.\n\n### How it works\n\n1. **Every morning** starts the run, and **Your settings** holds the template id.\n2. **Read rows to post** returns the rows whose `posted` column is `no`.\n3. **Render with TemplateFox** sends the row as template data and gets back an image URL.\n4. **Upload the image** stores it in the Nadia media library.\n5. **Schedule the post** books it in the next free slot with the image and the row's `caption`.\n\n### Setup\n\n1. Add your **Nadia** credential: API key from Settings -> Developers in Nadia, host `https://app.usenadia.com/api`.\n2. Create a **Header Auth** credential named `x-api-key` holding your TemplateFox API key, and select it in **Render with TemplateFox**.\n3. Put your template id in **Your settings**.\n4. Point **Read rows to post** at your sheet: a `caption` and a `posted` column, plus one column per template field.\n5. Open **Schedule the post**, pick your channel and fill the settings it loads.",
+        "width": 560,
+        "height": 780
       },
       "id": "sticky-note",
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -680,
+        -660,
         -240
       ]
     },
     {
       "parameters": {
         "content": "## The data\nOne row per post to publish.",
-        "width": 380,
-        "height": 220,
+        "width": 680,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note1",
@@ -28,15 +28,15 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -100,
+        -40,
         -240
       ]
     },
     {
       "parameters": {
         "content": "## The image\nTemplateFox renders the row into a designed image and returns its URL.",
-        "width": 380,
-        "height": 220,
+        "width": 280,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note2",
@@ -44,15 +44,15 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        320,
+        680,
         -240
       ]
     },
     {
       "parameters": {
         "content": "## The post\nNadia fetches the image, then schedules the post in the next free slot.",
-        "width": 460,
-        "height": 220,
+        "width": 500,
+        "height": 420,
         "color": 7
       },
       "id": "sticky-note3",
@@ -60,7 +60,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        740,
+        1000,
         -240
       ]
     },
@@ -80,7 +80,30 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -60,
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "template-id",
+              "name": "templateId",
+              "value": "your-template-id",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "your-settings",
+      "name": "Your settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
         0
       ]
     },
@@ -106,12 +129,12 @@
         },
         "options": {}
       },
-      "id": "google-sheets",
-      "name": "Google Sheets",
+      "id": "read-rows-to-post",
+      "name": "Read rows to post",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        160,
+        440,
         0
       ],
       "credentials": {
@@ -125,18 +148,11 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.templatefox.com/v1/image/create",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "YOUR_TEMPLATEFOX_API_KEY"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ template_id: 'YOUR_TEMPLATE_ID', data: $json }) }}",
+        "jsonBody": "={{ JSON.stringify({ template_id: $('Your settings').first().json.templateId, data: $json }) }}",
         "options": {}
       },
       "id": "render-with-templatefox",
@@ -144,9 +160,15 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        400,
+        740,
         0
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE",
+          "name": "TemplateFox API key"
+        }
+      }
     },
     {
       "parameters": {
@@ -158,7 +180,7 @@
       "type": "n8n-nodes-nadia.nadia",
       "typeVersion": 1,
       "position": [
-        660,
+        1060,
         0
       ],
       "credentials": {
@@ -174,7 +196,7 @@
         "channelId": "",
         "type": "schedule",
         "useFreeSlot": true,
-        "content": "={{ $('Google Sheets').item.json.caption }}",
+        "content": "={{ $('Read rows to post').item.json.caption }}",
         "media": "={{ JSON.stringify([{ id: $json.id, path: $json.path }]) }}",
         "settings": {
           "mappingMode": "defineBelow",
@@ -187,7 +209,7 @@
       "type": "n8n-nodes-nadia.nadia",
       "typeVersion": 1,
       "position": [
-        900,
+        1300,
         0
       ],
       "credentials": {
@@ -203,14 +225,25 @@
       "main": [
         [
           {
-            "node": "Google Sheets",
+            "node": "Your settings",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Google Sheets": {
+    "Your settings": {
+      "main": [
+        [
+          {
+            "node": "Read rows to post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read rows to post": {
       "main": [
         [
           {
