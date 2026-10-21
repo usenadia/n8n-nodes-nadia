@@ -12,7 +12,9 @@ pnpm build
 TARBALL=$(npm pack --pack-destination /tmp 2>/dev/null | tail -1)
 docker exec nadia-n8n-demo mkdir -p /home/node/.n8n/nodes
 docker cp "/tmp/$TARBALL" nadia-n8n-demo:/tmp/node.tgz
-docker exec -w /home/node/.n8n/nodes nadia-n8n-demo npm install /tmp/node.tgz
+# --legacy-peer-deps: n8n-workflow is a peer, already inside n8n. Without it
+# npm installs it again, with isolated-vm, whose native build fails here.
+docker exec -w /home/node/.n8n/nodes nadia-n8n-demo npm install --legacy-peer-deps /tmp/node.tgz
 docker restart nadia-n8n-demo
 
 echo "Local build installed. Reload http://localhost:5678"
