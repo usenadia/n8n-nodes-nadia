@@ -159,6 +159,7 @@ exists in the API).
 
 ## Resources
 
+- [Nadia n8n node documentation](https://usenadia.com/docs/integrations/n8n)
 - [Nadia public API documentation](https://usenadia.com/docs/public-api/introduction)
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
 

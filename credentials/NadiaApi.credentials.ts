@@ -13,7 +13,7 @@ export class NadiaApi implements ICredentialType {
 
 	icon: Icon = 'file:nadia.svg';
 
-	documentationUrl = 'https://usenadia.com/docs/public-api/introduction';
+	documentationUrl = 'https://usenadia.com/docs/integrations/n8n';
 
 	properties: INodeProperties[] = [
 		{
