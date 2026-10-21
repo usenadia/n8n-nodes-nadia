@@ -2,7 +2,16 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noUnusedLocals": false,
-    "types": ["jest", "node"]
+    "types": [
+      "jest",
+      "node"
+    ],
+    "resolveJsonModule": true
   },
-  "include": ["credentials/**/*", "nodes/**/*", "index.ts", "test/**/*"]
+  "include": [
+    "credentials/**/*",
+    "nodes/**/*",
+    "index.ts",
+    "test/**/*"
+  ]
 }

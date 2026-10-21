@@ -1,0 +1,30 @@
+{
+  "$comment": "Contract fixture for outbound webhook signatures (docs/n8n.md § Les webhooks côté serveur). Signed string = `<timestamp>.<raw body>`, HMAC-SHA256 with the webhook secret, hex, prefixed `sha256=`. Consumed by the server test, the Node SDK, the Python SDK and the n8n Trigger tests: change one, change all.",
+  "secret": "whsec_fixture_0123456789abcdef0123456789abcdef",
+  "headers": {
+    "X-Nadia-Event": "post.published",
+    "X-Nadia-Delivery": "0f5b2c1e-7d3a-4c2b-9e8f-123456789abc",
+    "X-Nadia-Timestamp": "1760000000",
+    "X-Nadia-Signature": "sha256=545bb41a4065fdba9df258bdd1c1ec549f0aebc3305e6f7e0d4d15668d5f6ee9"
+  },
+  "body": "{\"id\":\"0f5b2c1e-7d3a-4c2b-9e8f-123456789abc\",\"event\":\"post.published\",\"occurredAt\":\"2026-10-09T08:53:20.000Z\",\"organizationId\":\"org_fixture\",\"data\":{\"id\":\"post_fixture\",\"integration\":{\"id\":\"chan_fixture\",\"providerIdentifier\":\"instagram-standalone\"},\"releaseURL\":\"https://www.instagram.com/p/FIXTURE/\"}}",
+  "delivery": {
+    "id": "0f5b2c1e-7d3a-4c2b-9e8f-123456789abc",
+    "event": "post.published",
+    "occurredAt": "2026-10-09T08:53:20.000Z",
+    "organizationId": "org_fixture",
+    "data": {
+      "id": "post_fixture",
+      "integration": {
+        "id": "chan_fixture",
+        "providerIdentifier": "instagram-standalone"
+      },
+      "releaseURL": "https://www.instagram.com/p/FIXTURE/"
+    }
+  },
+  "tampered": {
+    "body": "{\"id\":\"0f5b2c1e-7d3a-4c2b-9e8f-123456789abc\",\"event\":\"post.published\",\"occurredAt\":\"2026-10-09T08:53:20.000Z\",\"organizationId\":\"org_fixture\",\"data\":{\"id\":\"post_tampered\",\"integration\":{\"id\":\"chan_fixture\",\"providerIdentifier\":\"instagram-standalone\"},\"releaseURL\":\"https://www.instagram.com/p/FIXTURE/\"}}",
+    "wrongSecret": "whsec_wrong_0123456789abcdef0123456789abcdef",
+    "staleTimestamp": "1700000000"
+  }
+}
