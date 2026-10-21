@@ -121,6 +121,13 @@ describe('webhook()', () => {
 		getWorkflowStaticData: () => ({ secret: SECRET }),
 		helpers: { returnJsonArray: (d: unknown) => [{ json: d }] },
 		getNode: () => ({ name: 'Nadia Trigger' }),
+		getResponseObject: () => response,
+	});
+
+	const response = { status: jest.fn(), json: jest.fn() };
+	beforeEach(() => {
+		response.status.mockReset().mockReturnValue(response);
+		response.json.mockReset();
 	});
 
 	const body = { id: 'd1', event: 'post.published', data: { id: 'post-1' } };
@@ -143,12 +150,19 @@ describe('webhook()', () => {
 			'x-nadia-timestamp': '1700000000',
 		});
 
-		await expect(node.webhook.call(context as never)).rejects.toThrow(/signature does not match/);
+		// Answered by the node, not thrown: a 500 would be retried by Nadia.
+		await expect(node.webhook.call(context as never)).resolves.toEqual({ noWebhookResponse: true });
+		expect(response.status).toHaveBeenCalledWith(401);
+		expect(response.json).toHaveBeenCalledWith({ error: 'Nadia signature does not match' });
 	});
 
 	it('rejects a delivery with no signature headers', async () => {
 		const context = makeWebhook(body, {});
-		await expect(node.webhook.call(context as never)).rejects.toThrow(/missing its Nadia signature/);
+		await expect(node.webhook.call(context as never)).resolves.toEqual({ noWebhookResponse: true });
+		expect(response.status).toHaveBeenCalledWith(400);
+		expect(response.json).toHaveBeenCalledWith({
+			error: 'Delivery is missing its Nadia signature headers',
+		});
 	});
 
 	it('lets an unsigned delivery through when verification is off', async () => {

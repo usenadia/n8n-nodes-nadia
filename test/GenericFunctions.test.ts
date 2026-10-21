@@ -6,6 +6,7 @@ import {
 	toPostHtml,
 	toStringArray,
 } from '../nodes/Nadia/GenericFunctions';
+import { NadiaApi } from '../credentials/NadiaApi.credentials';
 
 describe('nadiaApiRequest', () => {
 	const makeContext = (host: string) => {
@@ -47,6 +48,57 @@ describe('nadiaApiRequest', () => {
 		await nadiaApiRequest.call(context as never, 'GET', '/groups', undefined, {});
 
 		expect(httpRequestWithAuthentication.mock.calls[0][1].qs).toBeUndefined();
+	});
+
+	// A host without `/api` hits the app, which redirects to its login page:
+	// the request succeeds with HTML, and a Get Channels would output the page.
+	it('refuses an HTML answer and says the host must end with /api', async () => {
+		const { context, httpRequestWithAuthentication } = makeContext('https://app.usenadia.com');
+		httpRequestWithAuthentication.mockResolvedValue('<!DOCTYPE html><html><body>Login</body></html>');
+
+		const call = nadiaApiRequest.call(context as never, 'GET', '/integrations');
+
+		await expect(call).rejects.toThrow(/web page, not the API/);
+		await expect(call).rejects.toMatchObject({
+			description: expect.stringContaining('must end with /api'),
+		});
+	});
+
+	// Dropdowns load before n8n attaches the credential to a freshly added node.
+	it('asks for a credential instead of surfacing n8n\'s own error', async () => {
+		const context = {
+			getCredentials: jest.fn().mockRejectedValue(new Error('Node does not have any credentials set')),
+			helpers: { httpRequestWithAuthentication: jest.fn() },
+			getNode: () => ({ name: 'Nadia' }),
+		};
+
+		await expect(nadiaApiRequest.call(context as never, 'GET', '/groups')).rejects.toThrow(
+			'Select a Nadia credential first',
+		);
+		expect(context.helpers.httpRequestWithAuthentication).not.toHaveBeenCalled();
+	});
+});
+
+describe('credential test', () => {
+	const rules = new NadiaApi().test.rules as Array<{
+		type: string;
+		properties: { key: string; value: unknown; message: string };
+	}>;
+	// What n8n does with each rule: fail when the value at `key` equals `value`.
+	const verdict = (body: unknown) =>
+		rules.find(
+			(rule) =>
+				rule.type === 'responseSuccessBody' &&
+				(body as Record<string, unknown> | null)?.[rule.properties.key] === rule.properties.value,
+		)?.properties.message ?? 'ok';
+
+	it('passes on the API answer', () => {
+		expect(verdict({ connected: true })).toBe('ok');
+	});
+
+	it('fails on the login page a host without /api returns', () => {
+		expect(verdict('<!DOCTYPE html><html></html>')).toMatch(/Host must end with \/api/);
+		expect(verdict({})).toMatch(/Host must end with \/api/);
 	});
 });
 

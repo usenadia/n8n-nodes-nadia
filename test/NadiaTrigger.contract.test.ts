@@ -23,22 +23,36 @@ const deliver = ({
 	body?: unknown;
 	headers?: Record<string, string>;
 	secret?: string;
-}) =>
-	node.webhook.call({
-		// n8n's body parser keeps the bytes it read as `rawBody` (a Buffer) before
-		// parsing JSON; without it the node falls back to JSON.stringify(body).
-		getRequestObject: () => (rawBody === undefined ? {} : { rawBody: Buffer.from(rawBody) }),
-		getHeaderData: () => headers,
-		getBodyData: () => body,
-		getNodeParameter: (name: string, fallback?: unknown) => {
-			if (name === 'verifySignature') return true;
-			if (name === 'events') return ['post.published'];
-			return fallback;
-		},
-		getWorkflowStaticData: () => ({ secret }),
-		helpers: { returnJsonArray: (d: unknown) => [{ json: d }] },
-		getNode: () => ({ name: 'Nadia Trigger' }),
-	} as never);
+}) => {
+	const response = { status: jest.fn(), json: jest.fn() };
+	response.status.mockReturnValue(response);
+	return node.webhook
+		.call({
+			// n8n's body parser keeps the bytes it read as `rawBody` (a Buffer) before
+			// parsing JSON; without it the node falls back to JSON.stringify(body).
+			getRequestObject: () => (rawBody === undefined ? {} : { rawBody: Buffer.from(rawBody) }),
+			getHeaderData: () => headers,
+			getBodyData: () => body,
+			getNodeParameter: (name: string, fallback?: unknown) => {
+				if (name === 'verifySignature') return true;
+				if (name === 'events') return ['post.published'];
+				return fallback;
+			},
+			getWorkflowStaticData: () => ({ secret }),
+			helpers: { returnJsonArray: (d: unknown) => [{ json: d }] },
+			getNode: () => ({ name: 'Nadia Trigger' }),
+			getResponseObject: () => response,
+		} as never)
+		.then((result) => ({
+			...result,
+			status: response.status.mock.calls[0]?.[0] as number | undefined,
+			error: (response.json.mock.calls[0]?.[0] as { error?: string } | undefined)?.error,
+		}));
+};
+
+// A refused delivery is answered 401 by the node itself and starts nothing: a
+// thrown error would become a 500, which Nadia retries three times for nothing.
+const refused = { noWebhookResponse: true, status: 401, error: 'Nadia signature does not match' };
 
 describe('signed delivery contract (shared fixture)', () => {
 	it('accepts the delivery as n8n receives it (raw body kept), and outputs the envelope', async () => {
@@ -58,21 +72,19 @@ describe('signed delivery contract (shared fixture)', () => {
 	});
 
 	it('rejects a tampered body', async () => {
-		await expect(deliver({ rawBody: fixture.tampered.body })).rejects.toThrow(
-			/signature does not match/,
-		);
+		await expect(deliver({ rawBody: fixture.tampered.body })).resolves.toMatchObject(refused);
 	});
 
 	it('rejects a tampered body even without the raw body', async () => {
-		await expect(deliver({ body: JSON.parse(fixture.tampered.body) })).rejects.toThrow(
-			/signature does not match/,
+		await expect(deliver({ body: JSON.parse(fixture.tampered.body) })).resolves.toMatchObject(
+			refused,
 		);
 	});
 
 	it('rejects a delivery checked with the wrong secret', async () => {
 		await expect(
 			deliver({ rawBody: fixture.body, secret: fixture.tampered.wrongSecret }),
-		).rejects.toThrow(/signature does not match/);
+		).resolves.toMatchObject(refused);
 	});
 
 	// The timestamp is part of what is signed: swapping it breaks the signature.
@@ -81,8 +93,6 @@ describe('signed delivery contract (shared fixture)', () => {
 			...lowerCase(fixture.headers),
 			'x-nadia-timestamp': fixture.tampered.staleTimestamp,
 		};
-		await expect(deliver({ rawBody: fixture.body, headers })).rejects.toThrow(
-			/signature does not match/,
-		);
+		await expect(deliver({ rawBody: fixture.body, headers })).resolves.toMatchObject(refused);
 	});
 });

@@ -53,5 +53,28 @@ export class NadiaApi implements ICredentialType {
 			url: '/public/v1/is-connected',
 			method: 'GET',
 		},
+		// n8n fails the test when the value at `key` equals `value`. A host
+		// without `/api` lands on the app itself, which redirects to its login
+		// page: n8n follows, gets HTML in a 200, and would call that a success
+		// even with a wrong key. Only the API answers `{ connected: true }`.
+		rules: [
+			{
+				type: 'responseSuccessBody',
+				properties: {
+					key: 'connected',
+					value: undefined,
+					message:
+						'Nadia did not answer like its API. Host must end with /api — for example https://app.usenadia.com/api',
+				},
+			},
+			{
+				type: 'responseSuccessBody',
+				properties: {
+					key: 'connected',
+					value: false,
+					message: 'Nadia refused this API key',
+				},
+			},
+		],
 	};
 }

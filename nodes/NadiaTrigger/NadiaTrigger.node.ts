@@ -21,7 +21,10 @@ export class NadiaTrigger implements INodeType {
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{$parameter["events"].join(", ")}}',
-		description: 'Starts the workflow when Nadia publishes a post or receives a comment or a DM',
+		// n8n's node search merges Nadia and Nadia Trigger into one entry and shows
+		// this description for both, so it names what the action node does too.
+		description:
+			'Schedule social posts with Nadia, and start workflows when it publishes a post or receives a comment or a DM',
 		defaults: {
 			name: 'Nadia Trigger',
 		},
@@ -201,10 +204,7 @@ export class NadiaTrigger implements INodeType {
 			const timestamp = headers['x-nadia-timestamp'];
 
 			if (!signature || !timestamp) {
-				throw new NodeOperationError(
-					this.getNode(),
-					'Delivery is missing its Nadia signature headers',
-				);
+				return refuse.call(this, 400, 'Delivery is missing its Nadia signature headers');
 			}
 
 			// The raw body is what was signed; JSON.stringify of the parsed body is
@@ -220,7 +220,7 @@ export class NadiaTrigger implements INodeType {
 			const a = Buffer.from(expected);
 			const b = Buffer.from(signature);
 			if (a.length !== b.length || !timingSafeEqual(a, b)) {
-				throw new NodeOperationError(this.getNode(), 'Nadia signature does not match');
+				return refuse.call(this, 401, 'Nadia signature does not match');
 			}
 		}
 
@@ -235,4 +235,15 @@ export class NadiaTrigger implements INodeType {
 			workflowData: [this.helpers.returnJsonArray(body)],
 		};
 	}
+}
+
+/**
+ * Answer a refused delivery with a 4xx and start nothing. Throwing would make
+ * n8n answer 500, and Nadia retries a 5xx three times although the signature
+ * will not change; a 4xx (other than 429) is not retried.
+ */
+function refuse(this: IWebhookFunctions, status: 400 | 401, error: string): IWebhookResponseData {
+	this.logger?.debug(`Nadia Trigger refused a delivery: ${error}`);
+	this.getResponseObject().status(status).json({ error });
+	return { noWebhookResponse: true };
 }

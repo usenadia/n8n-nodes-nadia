@@ -95,6 +95,72 @@ describe('getChannels', () => {
 	});
 });
 
+describe('getBrands', () => {
+	// The brand field is optional with a '' default: without an entry of that
+	// value n8n flags it red (« The value "" is not supported! »).
+	it('offers an « All Brands » entry for the empty default', async () => {
+		const context = {
+			getCredentials: jest.fn().mockResolvedValue({ apiKey: 'k', host: 'https://h/api' }),
+			helpers: {
+				httpRequestWithAuthentication: jest.fn().mockResolvedValue([{ id: 'b1', name: 'Malta' }]),
+			},
+			getNode: () => ({ name: 'Nadia' }),
+		};
+
+		const options = await node.methods.loadOptions.getBrands.call(context as never);
+
+		expect(options).toEqual([
+			{ name: 'All Brands', value: '' },
+			{ name: 'Malta', value: 'b1' },
+		]);
+	});
+});
+
+describe('Get Posts', () => {
+	const run = async (params: Record<string, unknown>) => {
+		const httpRequestWithAuthentication = jest.fn().mockResolvedValue({ posts: [] });
+		const context = {
+			getInputData: () => [{ json: {} }],
+			getNodeParameter: (name: string, _i: number, fallback?: unknown) =>
+				name === 'operation' ? 'getPosts' : name in params ? params[name] : fallback,
+			getCredentials: jest.fn().mockResolvedValue({ apiKey: 'k', host: 'https://h/api' }),
+			helpers: {
+				httpRequestWithAuthentication,
+				returnJsonArray: (data: unknown) =>
+					(Array.isArray(data) ? data : [data]).map((json) => ({ json })),
+				constructExecutionMetaData: (items: unknown[]) => items,
+			},
+			continueOnFail: () => false,
+			getNode: () => ({ name: 'Nadia' }),
+		};
+		await node.execute.call(context as never);
+		return httpRequestWithAuthentication.mock.calls[0][1].qs;
+	};
+
+	// A brand is a Customer. On GET /posts `group` is the publication group, so
+	// sending the brand there matched nothing (0 posts for a brand with 74).
+	it('filters by brand with `customer`, not `group`', async () => {
+		const qs = await run({ brandId: 'brand-1' });
+		expect(qs).toMatchObject({ customer: 'brand-1' });
+		expect(qs).not.toHaveProperty('group');
+	});
+
+	it('sends no brand filter for « All Brands »', async () => {
+		const qs = await run({ brandId: '', postsChannelId: 'chan-1' });
+		expect(qs).toMatchObject({ integration: 'chan-1' });
+		expect(qs).not.toHaveProperty('customer');
+	});
+});
+
+describe('description', () => {
+	it('shows the operation label as the subtitle, not its value', () => {
+		const subtitle = node.description.subtitle as string;
+		const map = JSON.parse(subtitle.slice('={{ '.length, subtitle.indexOf('}[$parameter') + 1));
+		expect(map.createPost).toBe('Create a post');
+		expect(subtitle).toMatch(/\[\$parameter\["operation"\]\] \}\}$/);
+	});
+});
+
 describe('getChannelSettingsMapping', () => {
 	const makeContext = (settings: unknown, channelId = 'chan-1') => ({
 		getCredentials: jest.fn().mockResolvedValue({ apiKey: 'k', host: 'https://h/api' }),
@@ -124,7 +190,8 @@ describe('getChannelSettingsMapping', () => {
 				id: 'privacy_level',
 				displayName: 'Privacy Level',
 				required: true,
-				type: 'string',
+				// `options`, not `string`: only that type draws a dropdown in n8n.
+				type: 'options',
 				options: [
 					{ name: 'PUBLIC', value: 'PUBLIC' },
 					{ name: 'PRIVATE', value: 'PRIVATE' },

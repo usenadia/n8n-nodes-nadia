@@ -7,7 +7,7 @@ import type {
 	ILoadOptionsFunctions,
 	IWebhookFunctions,
 } from 'n8n-workflow';
-import { NodeApiError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 export type NadiaFunctions =
 	| IExecuteFunctions
@@ -32,7 +32,17 @@ export async function nadiaApiRequest(
 	// channels, a post, `{ output }`…); each caller reads what its route returns.
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any> {
-	const credentials = await this.getCredentials('nadiaApi');
+	let credentials;
+	try {
+		credentials = await this.getCredentials('nadiaApi');
+	} catch {
+		// Right after the node is dropped on the canvas, n8n loads the dropdowns
+		// before it has attached a credential, and its own error (« Node does not
+		// have any credentials set ») reads like a crash.
+		throw new NodeOperationError(this.getNode(), 'Select a Nadia credential first', {
+			description: 'Pick or create a Nadia API credential at the top of the node, then reopen it.',
+		});
+	}
 	const host = String(credentials.host || '').replace(/\/+$/, '');
 
 	const options: IHttpRequestOptions = {
@@ -50,11 +60,29 @@ export async function nadiaApiRequest(
 		options.qs = query;
 	}
 
+	let response;
 	try {
-		return await this.helpers.httpRequestWithAuthentication.call(this, 'nadiaApi', options);
+		response = await this.helpers.httpRequestWithAuthentication.call(this, 'nadiaApi', options);
 	} catch (error) {
 		throw new NodeApiError(this.getNode(), error as never);
 	}
+
+	if (looksLikeHtml(response)) {
+		throw new NodeOperationError(this.getNode(), 'Nadia answered with a web page, not the API', {
+			description: `The Host of the Nadia credential must end with /api — for example https://app.usenadia.com/api. It is ${host || 'empty'}.`,
+		});
+	}
+
+	return response;
+}
+
+/**
+ * A host without `/api` reaches the app, not the API: the app redirects to its
+ * login page and the request « succeeds » with HTML. No route of the public API
+ * answers HTML, so this is always a wrong Host.
+ */
+export function looksLikeHtml(response: unknown): boolean {
+	return typeof response === 'string' && /^\s*<(!doctype|html)/i.test(response);
 }
 
 export interface NadiaChannel {

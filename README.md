@@ -36,7 +36,9 @@ header of every call to the public API (`/public/v1`).
 | **Host** | `https://app.usenadia.com/api` for the hosted app. |
 
 Saving the credential calls `GET /public/v1/is-connected`, so a wrong key or
-host fails right away.
+host fails right away. A host without `/api` fails with *Host must end with
+/api*, and a node run with such a credential stops on the same message instead
+of returning the app's login page.
 
 > **Self-hosting?** The API lives behind `/api`, so the host must end with it —
 > `https://social.example.com/api`, not `https://social.example.com`. This is
@@ -108,7 +110,18 @@ You never paste a UUID. **Channel** is loaded from your account, and picking a
 
 Each network requires its own settings — TikTok alone has eight mandatory ones.
 The node reads them live from `GET /integration-settings/:id` and renders them
-as real fields, so they stay in step with the app without a release here.
+as real fields (a setting with a fixed list of values is a dropdown), so they
+stay in step with the app without a release here.
+
+> **The settings shown belong to another channel, or none appear?** Close the
+> node and open it again: n8n reloads them for the selected channel then. In
+> place, n8n reloads them on a channel change only while no other field of the
+> node holds an expression — as soon as **Content** is `{{ $json… }}`, as in
+> the example workflows, the reload waits for the next opening (or for
+> **Refresh** in the settings menu, the ⋮ next to *Values to Send*).
+>
+> Right after you add the node, the dropdowns may read *Error fetching options*
+> (n8n loads them before it attaches the credential): close and reopen the node.
 
 ### Attaching media
 
@@ -138,6 +151,10 @@ and is signed. `X-Nadia-Signature` is `sha256=` plus the HMAC of
 `<X-Nadia-Timestamp>.<raw body>`. The node checks it by default; turn
 **Verify Signature** off only if you put something in front of n8n that
 rewrites the body.
+
+A delivery that fails the check starts no execution: the node answers **401**
+(signature does not match) or **400** (signature headers missing). Nadia does
+not retry a 4xx, so a wrong secret costs one request, not four.
 
 ## Development
 

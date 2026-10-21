@@ -9,6 +9,7 @@ import type {
 	JsonObject,
 	ResourceMapperField,
 	ResourceMapperFields,
+	ResourceMapperTypeOptions,
 } from 'n8n-workflow';
 import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
@@ -36,6 +37,99 @@ const STAGE_OPTIONS = [
 	{ name: 'Published', value: 'PUBLISHED' },
 ];
 
+// One list for the dropdown and for the subtitle, so the canvas shows « Create a
+// post » and not the raw value.
+const OPERATION_OPTIONS = [
+	{
+		name: 'Create Card',
+		value: 'createContent',
+		description: 'Add a video idea to the content board',
+		action: 'Create a card',
+	},
+	{
+		name: 'Create Post',
+		value: 'createPost',
+		description: 'Schedule, draft or immediately publish a post on one channel',
+		action: 'Create a post',
+	},
+	{
+		name: 'Delete Post',
+		value: 'deletePost',
+		description: 'Delete a post by ID',
+		action: 'Delete a post',
+	},
+	{
+		name: 'Find Free Slot',
+		value: 'findFreeSlot',
+		description: 'Get the next free slot in a channel posting schedule',
+		action: 'Find a free slot',
+	},
+	{
+		name: 'Get Analytics',
+		value: 'getAnalytics',
+		description: 'Get the live analytics of one channel',
+		action: 'Get analytics',
+	},
+	{
+		name: 'Get Brands',
+		value: 'getBrands',
+		description: 'Get the list of brands (channel groups)',
+		action: 'Get many brands',
+	},
+	{
+		name: 'Get Cards',
+		value: 'getContents',
+		description: 'Get the cards of the content board',
+		action: 'Get many cards',
+	},
+	{
+		name: 'Get Channel Settings',
+		value: 'getChannelSettings',
+		description: 'Get the rules, max length and required settings of a channel provider',
+		action: 'Get channel settings',
+	},
+	{
+		name: 'Get Channels',
+		value: 'getChannels',
+		description: 'Get the list of connected channels',
+		action: 'Get many channels',
+	},
+	{
+		name: 'Get Posts',
+		value: 'getPosts',
+		description: 'Get the posts of a date range',
+		action: 'Get many posts',
+	},
+	{
+		name: 'Move Card',
+		value: 'moveContent',
+		description: 'Move a card to another column of the content board',
+		action: 'Move a card',
+	},
+	{
+		name: 'Update Card',
+		value: 'updateContent',
+		description: 'Change the title, hook, script or notes of a card',
+		action: 'Update a card',
+	},
+	{
+		name: 'Upload File',
+		value: 'uploadFile',
+		description: 'Upload a binary file from a previous node',
+		action: 'Upload a file',
+	},
+	{
+		name: 'Upload File From URL',
+		value: 'uploadFromUrl',
+		description: 'Let Nadia fetch a file from a public URL',
+		action: 'Upload a file from a URL',
+	},
+];
+
+const SUBTITLE = `={{ ${JSON.stringify(
+	Object.fromEntries(OPERATION_OPTIONS.map((option) => [option.value, option.action])),
+)}[$parameter["operation"]] }}`;
+
 export class Nadia implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Nadia',
@@ -43,7 +137,7 @@ export class Nadia implements INodeType {
 		icon: 'file:nadia.svg',
 		group: ['output'],
 		version: 1,
-		subtitle: '={{$parameter["operation"]}}',
+		subtitle: SUBTITLE,
 		description:
 			'Schedule social posts, upload media, read analytics and fill the content board with Nadia',
 		usableAsTool: true,
@@ -64,92 +158,7 @@ export class Nadia implements INodeType {
 				name: 'operation',
 				type: 'options',
 				noDataExpression: true,
-				options: [
-					{
-						name: 'Create Card',
-						value: 'createContent',
-						description: 'Add a video idea to the content board',
-						action: 'Create a card',
-					},
-					{
-						name: 'Create Post',
-						value: 'createPost',
-						description: 'Schedule, draft or immediately publish a post on one channel',
-						action: 'Create a post',
-					},
-					{
-						name: 'Delete Post',
-						value: 'deletePost',
-						description: 'Delete a post by ID',
-						action: 'Delete a post',
-					},
-					{
-						name: 'Find Free Slot',
-						value: 'findFreeSlot',
-						description: 'Get the next free slot in a channel posting schedule',
-						action: 'Find a free slot',
-					},
-					{
-						name: 'Get Analytics',
-						value: 'getAnalytics',
-						description: 'Get the live analytics of one channel',
-						action: 'Get analytics',
-					},
-					{
-						name: 'Get Brands',
-						value: 'getBrands',
-						description: 'Get the list of brands (channel groups)',
-						action: 'Get many brands',
-					},
-					{
-						name: 'Get Cards',
-						value: 'getContents',
-						description: 'Get the cards of the content board',
-						action: 'Get many cards',
-					},
-					{
-						name: 'Get Channel Settings',
-						value: 'getChannelSettings',
-						description: 'Get the rules, max length and required settings of a channel provider',
-						action: 'Get channel settings',
-					},
-					{
-						name: 'Get Channels',
-						value: 'getChannels',
-						description: 'Get the list of connected channels',
-						action: 'Get many channels',
-					},
-					{
-						name: 'Get Posts',
-						value: 'getPosts',
-						description: 'Get the posts of a date range',
-						action: 'Get many posts',
-					},
-					{
-						name: 'Move Card',
-						value: 'moveContent',
-						description: 'Move a card to another column of the content board',
-						action: 'Move a card',
-					},
-					{
-						name: 'Update Card',
-						value: 'updateContent',
-						description: 'Change the title, hook, script or notes of a card',
-						action: 'Update a card',
-					},
-					{
-						name: 'Upload File',
-						value: 'uploadFile',
-						description: 'Upload a binary file from a previous node',
-						action: 'Upload a file',
-					},
-					{
-						name: 'Upload File From URL',
-						value: 'uploadFromUrl',
-						description: 'Let Nadia fetch a file from a public URL',
-						action: 'Upload a file from a URL',
-					},
-				],
+				options: OPERATION_OPTIONS,
 				default: 'createPost',
 			},
 
@@ -278,7 +287,12 @@ export class Nadia implements INodeType {
 						fieldWords: { singular: 'setting', plural: 'settings' },
 						addAllFields: true,
 						multiKeyMatch: false,
-					},
+						// Settings come from the channel, never from the input items.
+						supportAutoMap: false,
+						// Reopening the node re-reads the schema and replaces it when the
+						// channel changed (versions without the key ignore it).
+						refreshStaleSchemaOnOpen: true,
+					} as ResourceMapperTypeOptions,
 				},
 				description:
 					'Provider-specific settings, read live from the channel. TikTok for instance requires eight of them.',
@@ -547,7 +561,12 @@ export class Nadia implements INodeType {
 
 			async getBrands(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 				const brands: NadiaBrand[] = await nadiaApiRequest.call(this, 'GET', '/groups');
-				return (brands || []).map((brand) => ({ name: brand.name, value: brand.id }));
+				// The field is optional and defaults to '': without an entry of that
+				// value n8n flags the empty default as « not supported ».
+				return [
+					{ name: 'All Brands', value: '' },
+					...(brands || []).map((brand) => ({ name: brand.name, value: brand.id })),
+				];
 			},
 		},
 
@@ -584,10 +603,17 @@ export class Nadia implements INodeType {
 					defaultMatch: false,
 					display: true,
 					canBeUsedToMatch: false,
-					type: jsonSchemaTypeToFieldType(definition || {}),
+					// n8n draws a dropdown only for `options` fields; a string field
+					// with `options` stays a free text box.
 					...(Array.isArray(definition?.enum)
-						? { options: definition.enum.map((v: unknown) => ({ name: String(v), value: v as string })) }
-						: {}),
+						? {
+								type: 'options' as const,
+								options: definition.enum.map((v: unknown) => ({
+									name: String(v),
+									value: v as string,
+								})),
+							}
+						: { type: jsonSchemaTypeToFieldType(definition || {}) }),
 				}));
 
 				return { fields };
@@ -669,7 +695,9 @@ export class Nadia implements INodeType {
 						startDate,
 						endDate,
 						...(channelId ? { integration: channelId } : {}),
-						...(brandId ? { group: brandId } : {}),
+						// A brand is a `Customer`; `group` on this route is the publication
+						// group (the posts sent together), so the brand goes in `customer`.
+						...(brandId ? { customer: brandId } : {}),
 					});
 					responseData = response?.posts ?? response;
 				} else if (operation === 'uploadFile') {
