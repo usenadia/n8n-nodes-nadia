@@ -47,7 +47,7 @@ Every hour the workflow reads your RSS feed, keeps only the items published sinc
 1. Create a Nadia credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.
 2. Put your feed URL in **Your settings**.
 3. Add an OpenAI credential to **Caption model**, or swap in any chat model.
-4. In **Schedule the post**, pick your channel and fill the settings it loads.
+4. In **Schedule the post**, pick your channel, then close and reopen the node: its settings load at that moment. Fill them.
 
 ## Requirements
 
@@ -80,7 +80,7 @@ Scheduled posts go out while nobody is watching. This workflow turns every publi
 ## How it works
 
 1. The Nadia Trigger receives a signed `post.published` event. It registers its own webhook in Nadia when you activate the workflow and removes it when you deactivate it, and it checks the signature of every delivery.
-2. A Set node flattens the event into the three fields the message needs.
+2. A Set node flattens the event into the three fields the message needs, and turns the HTML of the post into plain text.
 3. The Slack node posts the message to the channel you pick.
 
 ## Setup
@@ -115,7 +115,9 @@ Creators and small businesses who get leads, questions and story replies in thei
 
 ## What it does
 
-Every direct message your connected Instagram account receives becomes one row in a Google Sheet: when it arrived, on which channel, who wrote it, what they said, and the story it answers when it is a story reply. The sheet becomes a searchable log you can share, filter or feed into a CRM.
+Every direct message your connected Instagram account receives becomes one row in a Google Sheet: when it arrived, on which channel, who wrote it and what they said. The sheet becomes a searchable log you can share, filter or feed into a CRM.
+
+> **Coming soon.** Nadia will start emitting `dm.received` in a coming release. Until then, `POST /public/v1/webhooks/{id}/test` sends a sample delivery to map the fields.
 
 ## How it works
 
@@ -126,7 +128,7 @@ Every direct message your connected Instagram account receives becomes one row i
 ## Setup
 
 1. Create a Nadia credential: API key from Settings -> Developers, host `https://app.usenadia.com/api`.
-2. Create a sheet with the columns `date`, `channel`, `username`, `message`, `storyId`.
+2. Create a sheet with the columns `date`, `channelId`, `username`, `message`.
 3. Add a Google Sheets credential to **Append the row** and pick the spreadsheet and tab.
 4. Activate the workflow. n8n must be reachable from the internet over HTTPS.
 
@@ -172,5 +174,5 @@ Once a day the workflow reads the rows of a Google Sheet still marked as not pos
 2. Create a Header Auth credential named `x-api-key` with your TemplateFox API key.
 3. Put your template id in **Your settings**.
 4. Point **Read rows to post** at a sheet with `caption`, `posted` and one column per template field.
-5. In **Schedule the post**, pick your channel.
+5. In **Schedule the post**, pick your channel, then close and reopen the node: its settings load at that moment. Fill them.
 ```

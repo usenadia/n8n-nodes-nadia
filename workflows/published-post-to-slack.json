@@ -34,7 +34,7 @@
     },
     {
       "parameters": {
-        "content": "## One readable message\nThe envelope is flattened before it reaches Slack.",
+        "content": "## One readable message\nThe envelope is flattened and the HTML of the post turned into plain text before it reaches Slack.",
         "width": 460,
         "height": 420,
         "color": 7
@@ -84,7 +84,7 @@
             {
               "id": "2",
               "name": "text",
-              "value": "={{ $json.data.content }}",
+              "value": "={{ ($json.data.content || '').replace(/<br\\s*\\/?>/gi, '\\n').replace(/<\\/p>/gi, '\\n\\n').replace(/<[^>]+>/g, '').trim() }}",
               "type": "string"
             },
             {
