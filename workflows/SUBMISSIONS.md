@@ -117,7 +117,7 @@ Creators and small businesses who get leads, questions and story replies in thei
 
 Every direct message your connected Instagram account receives becomes one row in a Google Sheet: when it arrived, on which channel, who wrote it and what they said. The sheet becomes a searchable log you can share, filter or feed into a CRM.
 
-> **Coming soon.** Nadia will start emitting `dm.received` in a coming release. Until then, `POST /public/v1/webhooks/{id}/test` sends a sample delivery to map the fields.
+To map the fields before a real DM arrives, `POST /public/v1/webhooks/{id}/test` sends a sample delivery.
 
 ## How it works
 
