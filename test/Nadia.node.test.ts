@@ -27,10 +27,10 @@ describe('Nadia node description', () => {
 				'deletePost',
 				'findFreeSlot',
 				'getAnalytics',
-				'getBrands',
 				'getChannels',
 				'getChannelSettings',
 				'getPosts',
+				'getWorkspaces',
 				'uploadFile',
 				'uploadFromUrl',
 				'createContent',
@@ -43,9 +43,9 @@ describe('Nadia node description', () => {
 
 	// Upstream's node makes you paste a channel UUID by hand. The dropdown is
 	// the single biggest reason this package exists.
-	it('loads channels and brands from the API', () => {
+	it('loads channels and workspaces from the API', () => {
 		expect(Object.keys(node.methods.loadOptions)).toEqual(
-			expect.arrayContaining(['getChannels', 'getBrands']),
+			expect.arrayContaining(['getChannels', 'getWorkspaces']),
 		);
 	});
 
@@ -55,19 +55,19 @@ describe('Nadia node description', () => {
 		expect(Object.keys(node.methods.resourceMapping)).toContain('getChannelSettingsMapping');
 	});
 
-	it('narrows the channel list by brand', () => {
+	it('narrows the channel list by workspace', () => {
 		const channel = node.description.properties.find((p) => p.name === 'channelId');
-		expect(channel?.typeOptions?.loadOptionsDependsOn).toEqual(['brandId']);
+		expect(channel?.typeOptions?.loadOptionsDependsOn).toEqual(['workspaceId']);
 	});
 });
 
 describe('getChannels', () => {
-	const makeContext = (channels: unknown[], brandId = '') => {
+	const makeContext = (channels: unknown[], workspaceId = '') => {
 		const httpRequestWithAuthentication = jest.fn().mockResolvedValue(channels);
 		return {
 			context: {
 				getCredentials: jest.fn().mockResolvedValue({ apiKey: 'k', host: 'https://h/api' }),
-				getCurrentNodeParameter: jest.fn().mockReturnValue(brandId),
+				getCurrentNodeParameter: jest.fn().mockReturnValue(workspaceId),
 				helpers: { httpRequestWithAuthentication },
 				getNode: () => ({ name: 'Nadia' }),
 			},
@@ -86,32 +86,42 @@ describe('getChannels', () => {
 		expect(options).toEqual([{ name: 'Malta Expat (instagram-standalone)', value: '1' }]);
 	});
 
-	it('passes the brand as the group filter', async () => {
-		const { context, httpRequestWithAuthentication } = makeContext([], 'brand-1');
+	it('labels a channel with its workspace', async () => {
+		const { context } = makeContext([
+			{ id: '1', name: 'Malta Expat', identifier: 'tiktok', workspace: { id: 'w1', name: 'Malta' } },
+		]);
+
+		const options = await node.methods.loadOptions.getChannels.call(context as never);
+
+		expect(options).toEqual([{ name: 'Malta Expat (tiktok) — Malta', value: '1' }]);
+	});
+
+	it('passes the workspace as the `workspace` filter', async () => {
+		const { context, httpRequestWithAuthentication } = makeContext([], 'ws-1');
 
 		await node.methods.loadOptions.getChannels.call(context as never);
 
-		expect(httpRequestWithAuthentication.mock.calls[0][1].qs).toEqual({ group: 'brand-1' });
+		expect(httpRequestWithAuthentication.mock.calls[0][1].qs).toEqual({ workspace: 'ws-1' });
 	});
 });
 
-describe('getBrands', () => {
-	// The brand field is optional with a '' default: without an entry of that
+describe('getWorkspaces', () => {
+	// The workspace field is optional with a '' default: without an entry of that
 	// value n8n flags it red (« The value "" is not supported! »).
-	it('offers an « All Brands » entry for the empty default', async () => {
+	it('offers an « All Workspaces » entry for the empty default', async () => {
 		const context = {
 			getCredentials: jest.fn().mockResolvedValue({ apiKey: 'k', host: 'https://h/api' }),
 			helpers: {
-				httpRequestWithAuthentication: jest.fn().mockResolvedValue([{ id: 'b1', name: 'Malta' }]),
+				httpRequestWithAuthentication: jest.fn().mockResolvedValue([{ id: 'w1', name: 'Malta', channels: ['1'] }]),
 			},
 			getNode: () => ({ name: 'Nadia' }),
 		};
 
-		const options = await node.methods.loadOptions.getBrands.call(context as never);
+		const options = await node.methods.loadOptions.getWorkspaces.call(context as never);
 
 		expect(options).toEqual([
-			{ name: 'All Brands', value: '' },
-			{ name: 'Malta', value: 'b1' },
+			{ name: 'All Workspaces', value: '' },
+			{ name: 'Malta', value: 'w1' },
 		]);
 	});
 });
@@ -137,18 +147,18 @@ describe('Get Posts', () => {
 		return httpRequestWithAuthentication.mock.calls[0][1].qs;
 	};
 
-	// A brand is a Customer. On GET /posts `group` is the publication group, so
-	// sending the brand there matched nothing (0 posts for a brand with 74).
-	it('filters by brand with `customer`, not `group`', async () => {
-		const qs = await run({ brandId: 'brand-1' });
-		expect(qs).toMatchObject({ customer: 'brand-1' });
+	// On GET /posts `group` is the publication group (the posts sent together),
+	// not the workspace: a workspace id sent there matches nothing.
+	it('filters by workspace with `workspace`', async () => {
+		const qs = await run({ workspaceId: 'ws-1' });
+		expect(qs).toMatchObject({ workspace: 'ws-1' });
 		expect(qs).not.toHaveProperty('group');
 	});
 
-	it('sends no brand filter for « All Brands »', async () => {
-		const qs = await run({ brandId: '', postsChannelId: 'chan-1' });
+	it('sends no workspace filter for « All Workspaces »', async () => {
+		const qs = await run({ workspaceId: '', postsChannelId: 'chan-1' });
 		expect(qs).toMatchObject({ integration: 'chan-1' });
-		expect(qs).not.toHaveProperty('customer');
+		expect(qs).not.toHaveProperty('workspace');
 	});
 });
 

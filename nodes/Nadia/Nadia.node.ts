@@ -20,8 +20,8 @@ import {
 	parseMedia,
 	toPostHtml,
 	toStringArray,
-	type NadiaBrand,
 	type NadiaChannel,
+	type NadiaWorkspace,
 } from './GenericFunctions';
 
 const POST_OPS = ['createPost'];
@@ -71,12 +71,6 @@ const OPERATION_OPTIONS = [
 		action: 'Get analytics',
 	},
 	{
-		name: 'Get Brands',
-		value: 'getBrands',
-		description: 'Get the list of brands (channel groups)',
-		action: 'Get many brands',
-	},
-	{
 		name: 'Get Cards',
 		value: 'getContents',
 		description: 'Get the cards of the content board',
@@ -99,6 +93,12 @@ const OPERATION_OPTIONS = [
 		value: 'getPosts',
 		description: 'Get the posts of a date range',
 		action: 'Get many posts',
+	},
+	{
+		name: 'Get Workspaces',
+		value: 'getWorkspaces',
+		description: 'Get the list of workspaces (folders of channels)',
+		action: 'Get many workspaces',
 	},
 	{
 		name: 'Move Card',
@@ -163,18 +163,18 @@ export class Nadia implements INodeType {
 			},
 
 			// ──────────────────────────────────────────────────────────────
-			// Channel / brand selection
+			// Channel / workspace selection
 			// ──────────────────────────────────────────────────────────────
 			{
-				displayName: 'Brand Name or ID',
-				name: 'brandId',
+				displayName: 'Workspace Name or ID',
+				name: 'workspaceId',
 				type: 'options',
 				typeOptions: {
-					loadOptionsMethod: 'getBrands',
+					loadOptionsMethod: 'getWorkspaces',
 				},
 				default: '',
 				description:
-					'Narrow the channel list to one brand. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
+					'Narrow the channel list to one workspace. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 				displayOptions: {
 					show: {
 						operation: [...POST_OPS, 'getPosts'],
@@ -187,7 +187,7 @@ export class Nadia implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getChannels',
-					loadOptionsDependsOn: ['brandId'],
+					loadOptionsDependsOn: ['workspaceId'],
 				},
 				required: true,
 				default: '',
@@ -363,7 +363,7 @@ export class Nadia implements INodeType {
 				type: 'options',
 				typeOptions: {
 					loadOptionsMethod: 'getChannels',
-					loadOptionsDependsOn: ['brandId'],
+					loadOptionsDependsOn: ['workspaceId'],
 				},
 				default: '',
 				description:
@@ -540,32 +540,32 @@ export class Nadia implements INodeType {
 	methods = {
 		loadOptions: {
 			async getChannels(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const brandId = this.getCurrentNodeParameter('brandId') as string;
+				const workspaceId = this.getCurrentNodeParameter('workspaceId') as string;
 				const channels: NadiaChannel[] = await nadiaApiRequest.call(
 					this,
 					'GET',
 					'/integrations',
 					undefined,
-					brandId ? { group: brandId } : undefined,
+					workspaceId ? { workspace: workspaceId } : undefined,
 				);
 
 				return (channels || [])
 					.filter((channel) => !channel.disabled)
 					.map((channel) => ({
-						name: channel.customer
-							? `${channel.name} (${channel.identifier}) — ${channel.customer.name}`
+						name: channel.workspace
+							? `${channel.name} (${channel.identifier}) — ${channel.workspace.name}`
 							: `${channel.name} (${channel.identifier})`,
 						value: channel.id,
 					}));
 			},
 
-			async getBrands(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
-				const brands: NadiaBrand[] = await nadiaApiRequest.call(this, 'GET', '/groups');
+			async getWorkspaces(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
+				const workspaces: NadiaWorkspace[] = await nadiaApiRequest.call(this, 'GET', '/workspaces');
 				// The field is optional and defaults to '': without an entry of that
 				// value n8n flags the empty default as « not supported ».
 				return [
-					{ name: 'All Brands', value: '' },
-					...(brands || []).map((brand) => ({ name: brand.name, value: brand.id })),
+					{ name: 'All Workspaces', value: '' },
+					...(workspaces || []).map((workspace) => ({ name: workspace.name, value: workspace.id })),
 				];
 			},
 		},
@@ -672,8 +672,6 @@ export class Nadia implements INodeType {
 						undefined,
 						{ date: days },
 					);
-				} else if (operation === 'getBrands') {
-					responseData = await nadiaApiRequest.call(this, 'GET', '/groups');
 				} else if (operation === 'getChannels') {
 					responseData = await nadiaApiRequest.call(this, 'GET', '/integrations');
 				} else if (operation === 'getChannelSettings') {
@@ -689,17 +687,19 @@ export class Nadia implements INodeType {
 					const startDate = (this.getNodeParameter('startDate', i, '') as string) || fallback.startDate;
 					const endDate = (this.getNodeParameter('endDate', i, '') as string) || fallback.endDate;
 					const channelId = this.getNodeParameter('postsChannelId', i, '') as string;
-					const brandId = this.getNodeParameter('brandId', i, '') as string;
+					const workspaceId = this.getNodeParameter('workspaceId', i, '') as string;
 
 					const response = await nadiaApiRequest.call(this, 'GET', '/posts', undefined, {
 						startDate,
 						endDate,
 						...(channelId ? { integration: channelId } : {}),
-						// A brand is a `Customer`; `group` on this route is the publication
-						// group (the posts sent together), so the brand goes in `customer`.
-						...(brandId ? { customer: brandId } : {}),
+						// `group` on this route is the publication group (the posts sent
+						// together), not the workspace: the workspace goes in `workspace`.
+						...(workspaceId ? { workspace: workspaceId } : {}),
 					});
 					responseData = response?.posts ?? response;
+				} else if (operation === 'getWorkspaces') {
+					responseData = await nadiaApiRequest.call(this, 'GET', '/workspaces');
 				} else if (operation === 'uploadFile') {
 					responseData = await uploadFile.call(this, i);
 				} else if (operation === 'uploadFromUrl') {

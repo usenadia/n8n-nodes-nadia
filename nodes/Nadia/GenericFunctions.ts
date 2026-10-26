@@ -92,12 +92,13 @@ export interface NadiaChannel {
 	picture?: string;
 	disabled?: boolean;
 	profile?: string;
-	customer?: { id: string; name: string };
+	workspace?: { id: string; name: string };
 }
 
-export interface NadiaBrand {
+export interface NadiaWorkspace {
 	id: string;
 	name: string;
+	channels: string[];
 }
 
 /**

@@ -93,7 +93,7 @@ folder of the repository (Workflows → **Import from File**):
 | Upload File | `POST /upload` (binary from a previous node) |
 | Upload File From URL | `POST /upload-from-url` |
 | Get Channels | `GET /integrations` |
-| Get Brands | `GET /groups` |
+| Get Workspaces | `GET /workspaces` |
 | Get Channel Settings | `GET /integration-settings/:id` |
 | Get Analytics | `GET /analytics/:id` |
 | Create Card | `POST /contents` |
@@ -101,10 +101,16 @@ folder of the repository (Workflows → **Import from File**):
 | Move Card | `PUT /contents/:id/move` |
 | Update Card | `PUT /contents/:id` |
 
-### Channels and brands are dropdowns
+### Channels and workspaces are dropdowns
 
 You never paste a UUID. **Channel** is loaded from your account, and picking a
-**Brand** first narrows the list to that brand's channels.
+**Workspace** first narrows the list to that workspace's channels (a channel
+belongs to exactly one workspace). **Get Posts** filters by workspace the same
+way.
+
+Since 0.2.0 the operation is **Get Workspaces** (`GET /workspaces`, each item
+`{ id, name, channels }`) and the parameter is **Workspace** (`workspaceId`),
+renamed from 0.1.x: a workflow saved with 0.1.x must pick its workspace again.
 
 ### Per-provider settings are read from the API
 

@@ -35,17 +35,17 @@ describe('nadiaApiRequest', () => {
 	it('tolerates a trailing slash on the host', async () => {
 		const { context, httpRequestWithAuthentication } = makeContext('https://app.usenadia.com/api/');
 
-		await nadiaApiRequest.call(context as never, 'GET', '/groups');
+		await nadiaApiRequest.call(context as never, 'GET', '/workspaces');
 
 		expect(httpRequestWithAuthentication.mock.calls[0][1].url).toBe(
-			'https://app.usenadia.com/api/public/v1/groups',
+			'https://app.usenadia.com/api/public/v1/workspaces',
 		);
 	});
 
 	it('omits an empty query string', async () => {
 		const { context, httpRequestWithAuthentication } = makeContext('https://app.usenadia.com/api');
 
-		await nadiaApiRequest.call(context as never, 'GET', '/groups', undefined, {});
+		await nadiaApiRequest.call(context as never, 'GET', '/workspaces', undefined, {});
 
 		expect(httpRequestWithAuthentication.mock.calls[0][1].qs).toBeUndefined();
 	});
@@ -72,7 +72,7 @@ describe('nadiaApiRequest', () => {
 			getNode: () => ({ name: 'Nadia' }),
 		};
 
-		await expect(nadiaApiRequest.call(context as never, 'GET', '/groups')).rejects.toThrow(
+		await expect(nadiaApiRequest.call(context as never, 'GET', '/workspaces')).rejects.toThrow(
 			'Select a Nadia credential first',
 		);
 		expect(context.helpers.httpRequestWithAuthentication).not.toHaveBeenCalled();
